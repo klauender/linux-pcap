@@ -44,10 +44,12 @@ def main():
             if TCP in pkt:
                 l4 = pkt[TCP]
                 protocol = "TCP"
+                flags = l4.flags
 
             elif UDP in pkt:
                 l4 = pkt[UDP]
                 protocol = "UDP"
+                flags = ""
 
             else:
                 continue
@@ -57,7 +59,6 @@ def main():
             dst_port = int(l4.dport)    #宛先ポート番号
 
             length = len(pkt)   #bytes
-
             timestamp = float(pkt.time)    #time
 
             print(
@@ -65,11 +66,12 @@ def main():
                 dst_ip, ":", dst_port,
                 protocol,
                 "len=", length,
-                "time=", timestamp
+                "time=", timestamp,
+                "flags=", flags
             )
 
             key = (src_ip, dst_ip, src_port, dst_port, protocol)
-            update_flow(key, timestamp, length)
+            update_flow(key, timestamp, length, flags)
 
             now = time.time()
             cleanup(now)
@@ -88,14 +90,14 @@ def main():
         duration = f["end_time"] - f["start_time"]
         print(
             f"{src_ip}:{src_port} -> {dst_ip}:{dst_port} {protocol} "
-            f"pkts={f['packets']} bytes={f['bytes']} duration={duration:.3f}"
+            f"bytes={f['bytes']} pkts={f['packets']} duration={duration:.3f}"
         )
         save_db((src_ip, dst_ip, src_port, dst_port, protocol), f)
 
 
         
 
-def update_flow(key, timestamp, length):
+def update_flow(key, timestamp, length, flags):
 
     #タプルを分解
     src_ip, dst_ip, src_port, dst_port, protocol = key
@@ -106,8 +108,12 @@ def update_flow(key, timestamp, length):
             "direction": get_direction(src_ip, dst_ip),
             "start_time": timestamp,
             "end_time": timestamp,
-            "packets": 1,
             "bytes": length,
+            "packets": 1,
+            "ack_count": 0,
+            "syn_count": 0,
+            "fin_count": 0,
+            "rst_count": 0
         }
 
     else:   #フロー更新
@@ -119,10 +125,22 @@ def update_flow(key, timestamp, length):
         
         if timestamp > f["end_time"]:
             f["end_time"] = timestamp
+
+        f["bytes"] += length
         
         f["packets"] += 1
 
-        f["bytes"] += length
+        if "A" in flags:
+            f["ack_count"] += 1
+
+        if "S" in flags:
+            f["syn_count"] += 1
+
+        if "F" in flags:
+            f["fin_count"] += 1
+
+        if "R" in flags:
+            f["rst_count"] += 1
 
 
 def get_direction(src_ip, dst_ip):
@@ -156,8 +174,9 @@ def save_db(key, f):
     cur.execute("""
         INSERT INTO flows
         (src_ip, dst_ip, src_port, dst_port, protocol, 
-        direction, start_time, end_time, packets, bytes)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        direction, start_time, end_time, bytes, packets,
+        ack_count, syn_count, fin_count, rst_count)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         src_ip,
         dst_ip,
@@ -167,8 +186,12 @@ def save_db(key, f):
         f["direction"],
         f["start_time"],
         f["end_time"],
+        f["bytes"],
         f["packets"],
-        f["bytes"]
+        f["ack_count"],
+        f["syn_count"],
+        f["fin_count"],
+        f["rst_count"]
     ))
 
     #execute(ready) -> commit(go)
