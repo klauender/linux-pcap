@@ -1,100 +1,100 @@
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
 body {
-    height: 100vh;
     background-color: #5fb1a3;
-}
-
-.navigation {
     height: 100vh;
-    width: 70px;
-    position: relative;
-    background-color: #4d4c86;
-    box-shadow: 10px 0 0 #c77946;
-    border-left: 10px solid #4d4c86;
-    overflow-x: hidden; /*はみ出た部分を隠す*/
-    transition: all 0.5s;
-}
-
-.navigation:hover {
-    width: 300px;
-}
-
-.navigation ul {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding-top: 20px;
-    padding-left: 10px;
-}
-
-.navigation ul li {
-    list-style: none;
-    display: block;
-    width: 100%;
-    position: relative;
-    border-radius: 15px;
-}
-
-
-.navigation ul li:hover {
-    background-color: #3837685a;
-}
-
-.navigation ul li.active {
-    background-color: #c77946;
-}
-
-.navigation ul li.active::before {
-    content: "";
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    top: -30px;
-    right: 0;
-    border-radius: 50%;
-    box-shadow: 15px 15px 0 #c77946;
-}
-
-.navigation ul li.active::after {
-    content: "";
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    top: 60px;
-    right: 0;
-    border-radius: 50%;
-    box-shadow: 15px -15px 0 #c77946;
-}
-
-.navigation ul li a {
-    text-decoration: none;
-    color: white;
-    width: 100%;
     display: flex;
-    position: relative;
 }
 
-.navigation ul li a .icon {
-    display: block;
-    min-width: 45px;
-    height: 60px;
-    line-height: 70px;
-    text-align: center; /*中央寄せ*/
+.sidebar {
+    background-color: rgb(231, 231, 104);
+    width: 250px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid black;
 }
 
-.navigation ul li a .icon ion-icon {
-    font-size: 1.5rem;
+.sidebar-header {
+    background-color: rgb(214, 214, 214);
+    height: 100px;
+    border-bottom: 1px solid black;
 }
 
-.navigation ul li a .title {
-    padding-left: 10px;
-    height: 60px;
-    line-height: 60px;
-    white-space: nowrap; /*タイトル長くても折り返さない*/
+.sidebar-main {
+    background-color: rgb(104, 179, 231);
+    flex: 1;
+}
+
+.sidebar-main ul {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-main ul li {
+    background-color: rgb(94, 94, 202);
+    height: 70px;
+    border-bottom: 1px solid black;
+}
+
+.sidebar-main ul li a {
+    background-color: rgb(150, 210, 250);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    /*
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 20px 30px;
+    text-decoration: none; */
+}
+
+.sidebar-main ul li a:hover {
+    background-color: rgba(77, 132, 164, 0.452);
+}
+
+.list-icon {
+    font-size: 30px;
+    color: black;
+    margin-left: 20px;
+}
+
+.list-name {
+    font-size: 20px;
+    color: black;
+    margin-left: 30px;
+}
+
+.sidebar-footer {
+    background-color: rgb(212, 114, 101);
+    height: 30px;
+    margin-top: auto;
+    border-top: 1px solid black;
+}
+
+.container {
+    background-color: pink;
+    height: 100%;
+    flex: 1;    /*親がdisplay:flexのとき、残りのスペース全部頂戴*/
+    display: flex;  /*子要素をflexコンテナにする*/
+    flex-direction: column; /*flexコンテナを縦並びにする*/
+}
+
+.header {
+    background-color: orange;
+    height: 50px;
+    border-bottom: 1px solid black;
+}
+
+.main {
+    background-color: rgb(181, 60, 181);
+    flex: 1;
 }
