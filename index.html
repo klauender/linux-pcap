@@ -5,24 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>linux-pcap</title>
     <link rel="stylesheet" href="style.css">
+</head>
 <body>
-    <div class="sidebar">
-        <div class="logo_content">
-            <div class="logo">
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAj0lEQVR4AexUWw6AIAxD76T3/9ZD6bbEZCydIuAjAQMLK9PaThnDw9dnBAsJ28xkjKB7w1MwgccgDJTFkEcQVxVkvyXgfiT1KFcB6gfCQi5Bclc6waVV3aKGLVqBdo3p9VGKMPdPnumuwUzGCJLB67N9KeLw6mdqT8fSnAW4FslmjaAtsp6W5vJ+mkCA2mEHAAD//1qf3qEAAAAGSURBVAMA2DwkMdjFB3AAAAAASUVORK5CYII="/>
-                <div class="logo_name">linux-pcap</div>
-            </div>
-            <img id="btn" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAbklEQVR4AeyRUQrAMAhDt93/zqt+SUDox2sJlBaFCoYk5ns2v0swPfCZJ/rDN+mAV1lO9AY/6YBXWRwU/YJf54AEnFiR1RHIAh06AhJwYkVTRyALdLAQZFCkxbTFQQZF2u9AFNDBkgEVLfjtDgYAAAD//2aV2rYAAAAGSURBVAMA5V0wMb0/UU4AAAAASUVORK5CYII="/>
-        </div>
-        <ul class="nav_list">
-            <li>
+    <div class="navigation">
+        <ul>
+            <li class="list active">
                 <a href="#">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAuklEQVR4AexT0QqDMAx0+7CxPeyvBfXL9CKclIvBQCuCKGnT9s7Ensm7O/m5X4IBis3BMAzQahPmDK9Tib54MbIS+0QknJc8lwD4ai/M5cB210qOrR1Jb+AItQf3TaAVEil1yFOJxigSznsMWpbnquiHCFYNe+MPjJbluQQM0MyrRNatqiv3hjHx08lUot7rP6iPKBEuS8DKoZfv2rbE6TeAC71BtkOzPNdo2Q7N8lwC3qyZV4maBWagBQAA///gjbi6AAAABklEQVQDACL2ODFLUb94AAAAAElFTkSuQmCC"/>
-                    <span class="links_name">Dashboard</span>
+                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
+                    <span class="title">ホーム</span>
                 </a>
-                <span class="">Dashboard</span>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="tv-outline"></ion-icon></span>
+                    <span class="title">プロフィール</span>
+                </a>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="person-circle-outline"></ion-icon></span>
+                    <span class="title">チャンネル</span>
+                </a>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
+                    <span class="title">設定</span>
+                </a>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="id-card-outline"></ion-icon></span>
+                    <span class="title">個人情報</span>
+                </a>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="help-circle-outline"></ion-icon></span>
+                    <span class="title">ヘルプ</span>
+                </a>
+            </li>
+            <li class="list">
+                <a href="#">
+                    <span class="icon"><ion-icon name="log-out-outline"></ion-icon></span>
+                    <span class="title">サインアウト</span>
+                </a>
             </li>
         </ul>
     </div>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script>
+        const list = document.querySelectorAll(".list");
+        console.log(list);
+
+        //classにactiveを付与する関数
+        function activeLink() {
+            console.log("clicked");
+            this.classlist.add("active"); //thisはクリックされた要素を指す
+        }
+
+        list.forEach((item) => {
+            item.addEventLisner("click", activeLink);
+        });
+    </script>
 </body>
 </html>
