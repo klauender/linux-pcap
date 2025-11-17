@@ -4,28 +4,27 @@
 }
 
 body {
-    background-color: #5fb1a3;
     height: 100vh;
     display: flex;
+    background: #020617;
+    color: #e5e7eb;
 }
 
 .sidebar {
-    background-color: rgb(231, 231, 104);
-    width: 250px;
-    height: 100vh;
+    background-color: rgb(224, 224, 224);
+    height: 100%;
+    width: 60px;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid black;
+    border-right: 1px solid #1f2937;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.35);
 }
 
 .sidebar-header {
-    background-color: rgb(214, 214, 214);
-    height: 100px;
-    border-bottom: 1px solid black;
+    height: 60px;
 }
 
 .sidebar-main {
-    background-color: rgb(104, 179, 231);
     flex: 1;
 }
 
@@ -38,33 +37,36 @@ body {
 }
 
 .sidebar-main ul li {
-    background-color: rgb(94, 94, 202);
-    height: 70px;
-    border-bottom: 1px solid black;
+    height: 50px;
+    width: 50px;
+    border-radius: 10px;
+    margin-right: 4px;
+    margin-left: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
 }
 
 .sidebar-main ul li a {
-    background-color: rgb(150, 210, 250);
     height: 100%;
+    width: 100%;
     display: flex;
-    align-items: center;
     text-decoration: none;
-    /*
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    padding: 20px 30px;
-    text-decoration: none; */
+    border-radius: 10px;
+    transform: 1s;
 }
 
 .sidebar-main ul li a:hover {
-    background-color: rgba(77, 132, 164, 0.452);
+    background-color: rgba(161, 161, 161, 0.564);
+    box-shadow: 0 0 0 1px #1d4ed8;
 }
 
 .list-icon {
-    font-size: 30px;
+    margin: auto;
+    font-size: 35px;
     color: black;
-    margin-left: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .list-name {
@@ -74,14 +76,12 @@ body {
 }
 
 .sidebar-footer {
-    background-color: rgb(212, 114, 101);
     height: 30px;
     margin-top: auto;
-    border-top: 1px solid black;
+    border-top: 1px solid rgb(168, 168, 168);
 }
 
 .container {
-    background-color: pink;
     height: 100%;
     flex: 1;    /*親がdisplay:flexのとき、残りのスペース全部頂戴*/
     display: flex;  /*子要素をflexコンテナにする*/
@@ -89,12 +89,15 @@ body {
 }
 
 .header {
-    background-color: orange;
+    background-color: rgb(224, 224, 224);
     height: 50px;
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid rgb(168, 168, 168);
+}
+
+.header-title h2{
+    
 }
 
 .main {
-    background-color: rgb(181, 60, 181);
     flex: 1;
 }
