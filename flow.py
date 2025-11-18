@@ -15,8 +15,9 @@ from scapy.all import PcapReader, IP, TCP, UDP
 flows = {}
 
 #設定
-lan_net = ipaddress.ip_network("192.168.3.0/24")
-idle_timeout = 300
+#学校("10.128.56.0/22")
+lan_net = ipaddress.ip_network("10.128.56.0/22")
+idle_timeout = 10
 
 #DB接続
 conn = sqlite3.connect("flow.db")
