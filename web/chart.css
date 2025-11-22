@@ -1,0 +1,13 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.chart-section {
+  padding: 16px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;   /* ★ ここ大事：適当な高さを与える */
+}

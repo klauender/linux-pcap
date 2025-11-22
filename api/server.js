@@ -15,7 +15,7 @@ const PORT = 3000;  //ポート番号
 app.use(express.static(path.join(__dirname, "../web")));
 
 //データベースを変数に格納
-const db = new sqlite3.Database("../flow.db");
+const db = new sqlite3.Database(path.join(__dirname, "../flow.db"));
 
 // GET /api/healthにリクエストが来たらこの関数を実行する
 //req: リクエスト情報 req.url などで情報を取得できる
@@ -106,5 +106,5 @@ app.get("/api/flows", (req, res) => {
 //listenでポート番号を開いてreq来いって待ってる状態
 //サーバーを起動する
 app.listen(PORT, () => {
-    console.log(`API server running at http://localhost:${PORT}/api/flows`);
+    console.log(`API server running at http://localhost:${PORT}/index.html`);
 });
