@@ -27,7 +27,7 @@ app.get("/api/health", (req, res) => {
 
 app.get("/api/flowsByBytes", (req, res) => {
     
-    let sql = `
+    const sql = `
         select src_ip, dst_ip, direction, bytes
         from flows
         order by bytes desc
@@ -48,7 +48,7 @@ app.get("/api/flowsByBytes", (req, res) => {
 
 app.get("/api/flowsByPackets", (req, res) => {
     
-    let sql = `
+    const sql = `
         select src_ip, dst_ip, direction, packets
         from flows
         order by packets desc
@@ -69,9 +69,30 @@ app.get("/api/flowsByPackets", (req, res) => {
 
 app.get("/api/bytesByDirection", (req, res) => {
     
-    let sql = `
+    const sql = `
         select direction,
         sum(bytes) as totalBytes
+        from flows
+        group by direction
+        ;
+    `
+    db.all(sql, [], (err, rows) => {
+
+        //エラーがなければerrにnullが入る
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
+app.get("/api/packetsByDirection", (req, res) => {
+    
+    const sql = `
+        select direction,
+        sum(packets) as totalPackets
         from flows
         group by direction
         ;

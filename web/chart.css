@@ -3,11 +3,32 @@
     padding: 0;
 }
 
-.chart-section {
-  padding: 16px;
+html, body {
+  height: 100vh;
+  /*overflow: hidden;*/ /*画面外の部分は部分は切り捨て*/
 }
 
-.chart-wrapper {
-  position: relative;
-  height: 400px;   /* ★ ここ大事：適当な高さを与える */
+.display-flex {
+  display: flex;
+}
+
+.byBytes {
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 18px;
+  text-align: center;
+}
+
+.chart-wrapper-bar {
+  height: 250px;
+  width: 700px;
+  margin-top: 10px;
+}
+
+.chart-wrapper-pie {
+  height: 250px;
+  width: 250px;
+  margin: 10px;
 }

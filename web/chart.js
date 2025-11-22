@@ -6,10 +6,11 @@ async function loadFlows() {
 
     try {
         //resが帰ってくるまで待つ
-        const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes] = await Promise.all([
+        const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes, packetsByDirectionRes] = await Promise.all([
             fetch("/api/flowsByBytes"),
             fetch("/api/flowsByPackets"),
             fetch("/api/bytesByDirection"),
+            fetch("/api/packetsByDirection"),
         ]);
 
         
@@ -18,26 +19,29 @@ async function loadFlows() {
             //throwはエラーを投げる=中断する命令 try→catchを探す
             throw new Error("HTTP error" + flowsByBytesRes.status);
         }
-
         if(!flowsByPacketsRes.ok) {  
             throw new Error("HTTP error" + flowsByPacketsRes.status);
         }
-
         if(!bytesByDirectionRes.ok) {  
             throw new Error("HTTP error" + bytesByDirectionRes.status);
         }
+        if(!packetsByDirectionRes.ok) {  
+            throw new Error("HTTP error" + packetsByDirectionRes.status);
+        }
 
         //json形式→jsオブジェクト形式に解凍 jsonパース
-        const [flowsByBytesData, flowsByPacketsData, bytesByDirectionData] = await Promise.all([
+        const [flowsByBytesData, flowsByPacketsData, bytesByDirectionData, packetsByDirectionData] = await Promise.all([
             flowsByBytesRes.json(),
             flowsByPacketsRes.json(),
-            bytesByDirectionRes.json()
+            bytesByDirectionRes.json(),
+            packetsByDirectionRes.json()
         ]);
 
         //グラフ描画関数
         flowsByBytesChart(flowsByBytesData);
         flowsByPacketsChart(flowsByPacketsData);
         bytesByDirectionChart(bytesByDirectionData)
+        packetsByDirectionChart(packetsByDirectionData);
         
         //ここから先の場所でdataを使ってhtmlに表示やグラフ化する
 
@@ -216,16 +220,66 @@ function bytesByDirectionChart(data) {
         });
 
     } else {
-        //すでにchartがある場合は中身入れ替えて更新
+        //更新処理
         bytesByDirectionChartData.data.labels = labels;
         bytesByDirectionChartData.data.datasets[0].data = values;
         bytesByDirectionChartData.update();
     }
 }
 
+let packetsByDirectionChartData = null;
+
+function packetsByDirectionChart(data) {
+
+    const canvas = document.getElementById("packetsByDirection");
+
+    if(!canvas){
+        console.error("not found <canvas> in html")
+        return;
+    }
+
+    const labelMap = {
+        in: "IN",
+        out: "OUT",
+        external: "External",
+        internal: "Internal"
+    }
+
+    const labels = data.map(row => labelMap[row.direction]);
+    const values = data.map(row => row.totalPackets);
+
+    if (!packetsByDirectionChartData) {
+
+        packetsByDirectionChartData = new Chart(canvas, {
+            type: "pie",    //円グラフ
+
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Packets",
+                    data: values,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                    },
+                },
+            }
+        });
+
+    } else {
+        //更新処理
+        packetsByDirectionChartData.data.labels = labels;
+        packetsByDirectionChartData.data.datasets[0].data = values;
+        packetsByDirectionChartData.update();
+    }
+}
+
 
 let timerId;
-
 //ページが読み込まれたらloadFlowsを実行する
 //これをしたらindex.htmlを開いただけで自動的にfetchが走る
 window.addEventListener("DOMContentLoaded", () => {

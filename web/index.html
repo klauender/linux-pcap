@@ -10,26 +10,37 @@
 </head>
 <body>
     <main>
-        <section class="chart-section">
-            <h2>Top 10 Flows by Bytes</h2>
-            <div class="chart-wrapper">
-                <canvas id="flowsByBytes"></canvas>
-            </div>
-        </section>
+        <div class="display-flex byBytes">
+            <section class="chart-section-bar">
+                <h2 class="chart-title">Top 10 フロー (MB単位)</h2>
+                <div class="chart-wrapper-bar">
+                    <canvas id="flowsByBytes"></canvas>
+                </div>
+            </section>
 
-        <section class="chart-section">
-            <h2>Top 10 Flows by Packets</h2>
-            <div class="chart-wrapper">
-                <canvas id="flowsByPackets"></canvas>
-            </div>
-        </section>
+            <section class="chart-section-pie">
+                <h2 class="chart-title">通信方向 (MB単位)</h2>
+                <div class="chart-wrapper-pie">
+                    <canvas id="bytesByDirection"></canvas>
+                </div>
+            </section>
+        </div>
 
-        <section class="chart-section">
-            <h2>Traffic Direction (bytes)</h2>
-            <div class="chart-wrapper">
-                <canvas id="bytesByDirection"></canvas>
-            </div>
-        </section>
+        <div class="display-flex byPackets">
+            <section class="chart-section-bar">
+                <h2 class="chart-title">Top 10 フロー (パケット単位)</h2>
+                <div class="chart-wrapper-bar">
+                    <canvas id="flowsByPackets"></canvas>
+                </div>
+            </section>
+
+            <section class="chart-section-pie">
+                <h2 class="chart-title">通信方向 (パケット単位)</h2> <!--Traffic Direction (packets)-->
+                <div class="chart-wrapper-pie">
+                    <canvas id="packetsByDirection"></canvas>
+                </div>
+            </section>
+        </div>
 
     </main>
     <!-- chart.js読み込み -->
