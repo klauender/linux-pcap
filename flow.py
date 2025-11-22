@@ -16,7 +16,8 @@ flows = {}
 
 #設定
 #学校("10.128.56.0/22")
-lan_net = ipaddress.ip_network("10.128.56.0/22")
+#各務原wifi("192.168.10.0/24")
+lan_net = ipaddress.ip_network("192.168.10.0/24")
 idle_timeout = 10
 
 #DB接続

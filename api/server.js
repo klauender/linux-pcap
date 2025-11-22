@@ -25,6 +25,27 @@ app.get("/api/health", (req, res) => {
     res.json({status: "ok"});
 });
 
+app.get("/api/bytesByDirection", (req, res) => {
+    
+    let sql = `
+        select direction,
+        sum(bytes) as totalBytes
+        from flows
+        group by direction
+        ;
+    `
+    db.all(sql, [], (err, rows) => {
+
+        //エラーがなければerrにnullが入る
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
 app.get("/api/flows", (req, res) => {
 
     //ソートの指標
