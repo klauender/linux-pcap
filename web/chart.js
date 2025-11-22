@@ -7,8 +7,8 @@ async function loadFlows() {
     try {
         //resが帰ってくるまで待つ
         const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes] = await Promise.all([
-            fetch("/api/flows?metric=bytes&direction=desc&limit=10"),
-            fetch("/api/flows?metric=packets&direction=desc&limit=10"),
+            fetch("/api/flowsByBytes"),
+            fetch("/api/flowsByPackets"),
             fetch("/api/bytesByDirection"),
         ]);
 

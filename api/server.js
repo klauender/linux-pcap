@@ -25,6 +25,48 @@ app.get("/api/health", (req, res) => {
     res.json({status: "ok"});
 });
 
+app.get("/api/flowsByBytes", (req, res) => {
+    
+    let sql = `
+        select src_ip, dst_ip, direction, bytes
+        from flows
+        order by bytes desc
+        limit 10
+        ;
+    `
+    db.all(sql, [], (err, rows) => {
+
+        //エラーがなければerrにnullが入る
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
+app.get("/api/flowsByPackets", (req, res) => {
+    
+    let sql = `
+        select src_ip, dst_ip, direction, packets
+        from flows
+        order by packets desc
+        limit 10
+        ;
+    `
+    db.all(sql, [], (err, rows) => {
+
+        //エラーがなければerrにnullが入る
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
 app.get("/api/bytesByDirection", (req, res) => {
     
     let sql = `
@@ -42,83 +84,6 @@ app.get("/api/bytesByDirection", (req, res) => {
             return res.status(500).json({error: "database error"});
         }
         
-        res.json(rows);
-    });
-});
-
-app.get("/api/flows", (req, res) => {
-
-    //ソートの指標
-    const metricParam = (req.query.metric || "packets").toLowerCase();   //packetsやbytesなど
-    let metric;
-
-    if(metricParam === "packets") {
-        metric = "packets";
-    } 
-    else if (metricParam === "bytes") {
-        metric = "bytes";
-    }
-    else {
-        metric = "bytes";
-    };
-
-    //昇順 or 降順
-    const directionParam = (req.query.direction || "desc").toLowerCase(); // asc,desc期待
-    let direction;
-
-    if (directionParam === "asc") {
-        direction = "ASC";
-    }
-    else if (directionParam === "desc") {
-        direction = "DESC";
-    }
-    else {
-        direction = "DESC"
-    }
-
-
-
-    //urlの?limit=10の部分がreq.queryに入る
-    //Number()は文字→数値変換。何も指定なしだとNaNになる
-
-    //値は?
-    //sqlは${}
-    let sql = `
-        select *
-        from flows
-        order by ${metric} ${direction}
-    `;
-
-    //プレースホルダ用配列
-    const params = [];
-
-    const limit = Number(req.query.limit);
-
-    //isFinite 有限か無限か
-    if(Number.isFinite(limit) && limit > 0) {
-        sql += " limit ?";
-        params.push(limit);
-    }
-
-    sql += ";";
-
-    //db.allはselect文を実行してその結果をjsのオブジェクト配列に変換したものをrows変数に入れる
-    //db.runはinsert, update, deleteしたいときに使う。db.getは一行だけほしいとき
-    //rowsにはselectの結果がjsのオブジェクト配列で入る
-    //まず第一引数、第二引数によってsqlが実行され、その結果がerr,rowsに格納される
-    db.all(sql, params, (err, rows) => {
-
-        //エラーがなければerrにnullが入る
-        if (err) {
-            console.error("DB error:", err);
-            //エラーとして返す
-            //returnはここでこの関数は終わり。これ以降は実行しないでの意味
-            return res.status(500).json({error: "database error"});
-        }
-
-        //res.の形でレスポンスする
-        //送信のためにjsのオブジェクト配列をjson形式にして返す。それをクライアント側がまたオブジェクト配列に戻して使う
-        //js配列 → json形式 → 送信 → json形式 → js配列
         res.json(rows);
     });
 });
