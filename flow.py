@@ -18,7 +18,7 @@ flows = {}
 #学校("10.128.56.0/22")
 #各務原wifi("192.168.10.0/24")
 lan_net = ipaddress.ip_network("192.168.10.0/24")
-idle_timeout = 10
+idle_timeout = 3
 
 #DB接続
 conn = sqlite3.connect("flow.db")
@@ -74,6 +74,7 @@ def main():
 
             key = (src_ip, dst_ip, src_port, dst_port, protocol)
             update_flow(key, timestamp, length, flags)
+            update_packet(timestamp, length)
 
             now = time.time()
             cleanup(now)
@@ -157,13 +158,13 @@ def get_direction(src_ip, dst_ip):
     
     elif not src_internal and dst_internal:
         return "in"
-    
+        
     elif src_internal and dst_internal:
         return "internal"
     
     else:
         return "external"
-    
+
 
 
 def save_db(key, f):
@@ -215,6 +216,62 @@ def cleanup(now):
     #flows辞書から削除
     for key in expired_keys:
         del flows[key]
+
+
+
+#定期秒ごとにパケット集計
+secPackets = {}
+# (secSection) : {
+#    "totalBytes": 18339
+#    "totalPackets":  89
+#}
+
+def update_packet (timestamp, length):
+
+    secSection = timestamp // 5
+
+    if secSection not in secPackets:
+
+        secPackets[secSection] = {
+            "totalBytes": length,
+            "totalPackets": 1
+        }
+
+        cleanupSecPackets(secSection)
+
+    else:
+        f = secPackets[secSection]
+        f["totalBytes"] += length
+        f["totalPackets"] += 1
+
+
+
+def cleanupSecPackets(secSection):
+    expired_secPacketsKey = []
+
+    for key, value in secPackets.items():    #.item()はkey-value形式で取り出す
+        if key < secSection:
+            save_packetDB(key, value)
+            expired_secPacketsKey.append(key)
+    
+    for key in expired_secPacketsKey:
+        del secPackets[key]
+    
+
+
+def save_packetDB(key, value): 
+            
+        cur.execute("""
+            INSERT INTO packets
+            (secSection, totalBytes, totalPackets)
+            VALUES(?, ?, ?)
+        """, (
+            key,
+            value["totalBytes"],
+            value["totalPackets"]
+        ))
+
+        conn.commit()
 
 
 #ファイルを直接実行したときにmainを実行

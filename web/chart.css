@@ -22,13 +22,13 @@ html, body {
 }
 
 .chart-wrapper-bar {
-  height: 250px;
+  height: 300px;
   width: 700px;
   margin-top: 10px;
 }
 
 .chart-wrapper-pie {
-  height: 250px;
-  width: 250px;
+  height: 300px;
+  width: 300px;
   margin: 10px;
 }

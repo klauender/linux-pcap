@@ -195,7 +195,7 @@ function bytesByDirectionChart(data) {
     }
 
     const labels = data.map(row => labelMap[row.direction]);
-    const values = data.map(row => row.totalBytes);
+    const values = data.map(row => row.totalBytes / 1024 /1024);
 
     if (!bytesByDirectionChartData) {
 
@@ -205,7 +205,7 @@ function bytesByDirectionChart(data) {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: "Bytes",
+                    label: "MB",
                     data: values,
                 }]
             },
