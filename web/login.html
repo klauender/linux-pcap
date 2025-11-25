@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinaP</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h2>login</h2>
+            <form>
+                <div class="select-wrapper">
+                    <label for="role">権限</label>
+                    <select id="role" name="role">
+                        <option value="admin">admin(管理者)</option>
+                        <option value="operator">operator(閲覧者)</option>
+                    </select>
+                </div>
+                <div class="password-wrapper">
+                    <label for="password">password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                    />
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100vh;
+}
+
+body {
+    display: flex;
+    justify-content: center; /* displayflexからの横方向センター */
+    align-items: center;     /* displayflexからの縦方向センター */
+    background: #f3f4f6;
+}
+
+.login-card {
+    background: #ffffff;
+    padding: 24px 28px;
+    border-radius: 10px;
+    /*box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); */
+    border: 2px solid rgb(145, 145, 145);
+    width: 500px;
+}
+
+.login-card h2 {
+    margin-top: 25px;
+    margin-bottom: 60px;
+    text-align: center;
+    font-size: 25px;
+}
+
+label {
+    display: block; /*?*/
+    margin-bottom: 10px;
+    font-size: 17px;
+    text-align: center;
+}
+
+.select-wrapper, 
+.password-wrapper {
+    margin-bottom: 40px;
+}
+
+select,
+input[type="password"] {
+    width: 200px;
+    display: block;
+    margin: 0 auto;
+    padding: 4px 7.5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-size: 14px;
+}

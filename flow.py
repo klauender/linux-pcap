@@ -14,10 +14,11 @@ from scapy.all import PcapReader, IP, TCP, UDP
 #}
 flows = {}
 
-#設定
-#学校("10.128.56.0/22")
-#各務原wifi("192.168.10.0/24")
-lan_net = ipaddress.ip_network("192.168.10.0/24")
+#各務原wifi
+#lan_net = ipaddress.ip_network("192.168.10.0/24")
+
+#153教室lan
+lan_net = ipaddress.ip_network("10.128.56.0/22")
 idle_timeout = 3
 
 #DB接続
