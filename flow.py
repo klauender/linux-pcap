@@ -260,7 +260,11 @@ def update_realtime_aggregate(timestamp, length):
 
 
 def save_realtime_aggregates():
-    """5秒ごとの集計データをDBに保存"""
+    """5秒ごとの集計データをDBに保存（別スレッド用に専用DB接続を使用）"""
+    # スレッドセーフにするため、この関数内で専用のDB接続を作成
+    thread_conn = sqlite3.connect("flow.db")
+    thread_cur = thread_conn.cursor()
+    
     current_time = time.time()
     current_timestamp_5sec = int(current_time // 5) * 5
     
@@ -270,16 +274,18 @@ def save_realtime_aggregates():
         for ts, data in list(realtime_aggregates.items())[:3]:  # 最初の3件を表示
             print(f"  timestamp={ts}, bytes={data['total_bytes']}, packets={data['total_packets']}")
     
+    # realtime_aggregates辞書のコピーを作成（スレッドセーフ）
+    aggregates_copy = dict(realtime_aggregates)
+    
     # realtime_aggregates辞書内のすべてのデータを保存
-    # タイムスタンプの範囲を広げて、過去のデータも保存できるようにする
     saved_count = 0
-    for timestamp_5sec, data in realtime_aggregates.items():
+    for timestamp_5sec, data in aggregates_copy.items():
         # タイムスタンプの差を計算（絶対値で比較）
         time_diff = abs(current_timestamp_5sec - timestamp_5sec)
         # 60秒以内のデータを保存（より広い範囲）
         if time_diff <= 60:
             try:
-                cur.execute("""
+                thread_cur.execute("""
                     INSERT OR REPLACE INTO realtime_packets
                     (timestamp, total_bytes, total_packets)
                     VALUES(?, ?, ?)
@@ -296,12 +302,15 @@ def save_realtime_aggregates():
                 traceback.print_exc()
     
     if saved_count > 0:
-        conn.commit()
+        thread_conn.commit()
         print(f"リアルタイム集計データ {saved_count} 件を保存しました")
     else:
-        if len(realtime_aggregates) > 0:
-            print(f"警告: realtime_aggregatesに{len(realtime_aggregates)}件のデータがありますが、保存されませんでした")
+        if len(aggregates_copy) > 0:
+            print(f"警告: realtime_aggregatesに{len(aggregates_copy)}件のデータがありますが、保存されませんでした")
             print(f"現在時刻の5秒間隔: {current_timestamp_5sec}")
+    
+    # DB接続を閉じる
+    thread_conn.close()
     
     # 60秒以上古いデータを削除（メモリ節約）
     expired_keys = []
