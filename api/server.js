@@ -2,20 +2,101 @@
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
-
-//アプリケーション本体を作る
-const app = express();
-
-//設定
-const PORT = 3000;  //ポート番号
-
-//app.use expressにミドルウェアという処理を登録している
-//express.static 静的ファイル(ただファイルを渡す)として配信するミドルウェアを作る
-//path.join... フォルダの公開範囲を絶対パスで設定。__dirname=今動いているserver.jsの絶対パス そこに相対パス"../web"を組み合わせる。これが公開範囲の絶対パス
-app.use(express.static(path.join(__dirname, "../web")));
+const session = require("express-session"); // ← セッション用（npm install express-session）
 
 //データベースを変数に格納
 const db = new sqlite3.Database(path.join(__dirname, "../flow.db"));
+
+//アプリケーション本体を作る
+const app = express();
+const PORT = 3000;  //ポート番号
+
+// フォームの値を受け取るための設定（POSTのrole/passwordを読む）
+app.use(express.urlencoded({ extended: false }));
+
+// セッションの設定（ログイン状態を覚える）
+app.use(
+    session({
+        secret: "change-this-secret-key", // 適当な長い文字列に変えてOK
+        resave: false,
+        saveUninitialized: false,
+    })
+);
+
+//__dirname = 今動いているserver.jsの絶対パス そこに相対パス"../web"を組み合わせる。これが公開範囲の絶対パス
+app.use(express.static(path.join(__dirname, "../web")));
+
+
+// =====================
+//  ログイン関連のルート
+// =====================
+
+// GET /login : ログイン画面を表示
+app.get("/login", (req, res) => {
+    // すでにログイン済みなら /index へ飛ばす（お好みで）
+    if (req.session.loggedIn) {
+        return res.redirect("/index");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/login.html"));
+});
+
+// POST /login : ログイン処理（DBのloginテーブルと照合）
+app.post("/login", (req, res) => {
+    const role = req.body.role;
+    const password = req.body.password;
+
+    // 空欄チェックも同じエラー扱いでいいならまとめてOK
+    if (!role || !password) {
+        return res.redirect("/login?error=1");
+    }
+
+    const sql = "SELECT password FROM login WHERE role = ?";
+
+    db.get(sql, [role], (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            // サーバー側のエラーだけ別コードにしたいなら error=2 とかでもOK
+            return res.status(500).send("サーバーエラーが発生しました");
+        }
+
+        // 該当roleなし or パスワード不一致
+        if (!row || row.password !== password) {
+            return res.redirect("/login?error=1");
+        }
+
+        // 認証成功
+        req.session.loggedIn = true;
+        req.session.role = role;
+
+        return res.redirect("/index");
+    });
+});
+
+
+// GET /logout : ログアウト（セッション破棄して/loginへ）
+app.get("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/login");
+    });
+});
+
+// GET /index : ログイン必須ページの例
+// ここでは index.html を返す前にセッション確認を入れてる
+app.get("/index", (req, res) => {
+    //req.session.loggedInを見てセッション確認
+    //ない→/login  ある→/index
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/index.html"));
+});
+
+
+// =====================
+//  ここから下は既存API
+// =====================
 
 // GET /api/healthにリクエストが来たらこの関数を実行する
 //req: リクエスト情報 req.url などで情報を取得できる
@@ -23,6 +104,59 @@ const db = new sqlite3.Database(path.join(__dirname, "../flow.db"));
 app.get("/api/health", (req, res) => {
     //json形式でレスポンスを返す
     res.json({status: "ok"});
+});
+
+// ログイン中ユーザー情報を返すAPI
+app.get("/api/session", (req, res) => {
+    if (!req.session || !req.session.loggedIn) {
+        return res.status(401).json({ loggedIn: false });
+    }
+
+    res.json({
+        loggedIn: true,
+        role: req.session.role,
+    });
+});
+
+// パスワード変更API
+app.post("/api/change-password", (req, res) => {
+    // ログイン確認
+    if (!req.session || !req.session.loggedIn) {
+        return res.status(401).json({ success: false, error: "ログインが必要です" });
+    }
+
+    const role = req.session.role;
+    const oldPassword = req.body.oldPassword;
+    const newPassword = req.body.newPassword;
+
+    // 入力チェック
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ success: false, error: "現在のパスワードと新しいパスワードを入力してください" });
+    }
+
+    // 現在のパスワードを確認
+    const checkSql = "SELECT password FROM login WHERE role = ?";
+    db.get(checkSql, [role], (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({ success: false, error: "データベースエラーが発生しました" });
+        }
+
+        if (!row || row.password !== oldPassword) {
+            return res.status(400).json({ success: false, error: "現在のパスワードが正しくありません" });
+        }
+
+        // パスワードを更新
+        const updateSql = "UPDATE login SET password = ? WHERE role = ?";
+        db.run(updateSql, [newPassword, role], (updateErr) => {
+            if (updateErr) {
+                console.error("DB error:", updateErr);
+                return res.status(500).json({ success: false, error: "パスワードの更新に失敗しました" });
+            }
+
+            res.json({ success: true, message: "パスワードが正常に変更されました" });
+        });
+    });
 });
 
 app.get("/api/flowsByBytes", (req, res) => {
@@ -33,7 +167,7 @@ app.get("/api/flowsByBytes", (req, res) => {
         order by bytes desc
         limit 10
         ;
-    `
+    `;
     db.all(sql, [], (err, rows) => {
 
         //エラーがなければerrにnullが入る
@@ -54,7 +188,7 @@ app.get("/api/flowsByPackets", (req, res) => {
         order by packets desc
         limit 10
         ;
-    `
+    `;
     db.all(sql, [], (err, rows) => {
 
         //エラーがなければerrにnullが入る
@@ -75,7 +209,7 @@ app.get("/api/bytesByDirection", (req, res) => {
         from flows
         group by direction
         ;
-    `
+    `;
     db.all(sql, [], (err, rows) => {
 
         //エラーがなければerrにnullが入る
@@ -96,7 +230,7 @@ app.get("/api/packetsByDirection", (req, res) => {
         from flows
         group by direction
         ;
-    `
+    `;
     db.all(sql, [], (err, rows) => {
 
         //エラーがなければerrにnullが入る
@@ -113,5 +247,5 @@ app.get("/api/packetsByDirection", (req, res) => {
 //listenでポート番号を開いてreq来いって待ってる状態
 //サーバーを起動する
 app.listen(PORT, () => {
-    console.log(`API server running at http://localhost:${PORT}/index.html`);
+    console.log(`API server running at http://localhost:${PORT}/index`);
 });

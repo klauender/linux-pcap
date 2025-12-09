@@ -1,0 +1,103 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100vh;
+}
+
+body {
+    display: flex;
+    justify-content: center; /* displayflexからの横方向センター */
+    align-items: center;     /* displayflexからの縦方向センター */
+    background: #f3f4f6;
+}
+
+.login-card {
+    background: #ffffff;
+    padding: 24px 28px;
+    border-radius: 10px;
+    /*box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); */
+    border: 2px solid rgb(145, 145, 145);
+    width: 500px;
+}
+
+.login-card h2 {
+    margin-top: 25px;
+    margin-bottom: 60px;
+    text-align: center;
+    font-size: 25px;
+}
+
+label {
+    display: block; /*?*/
+    margin-bottom: 10px;
+    font-size: 17px;
+    text-align: center;
+}
+
+.select-wrapper, 
+.password-wrapper {
+    margin-bottom: 40px;
+}
+
+button,
+select,
+input[type="password"] {
+    width: 200px;
+    display: block;
+    margin: 0 auto;
+    padding: 4px 7.5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+/* ボタン用 */
+button {
+    width: 200px;          /* select / input と同じ幅 */
+    display: block;
+    margin: 0 auto;        /* 横方向の中央寄せ */
+    padding: 8px 0;
+    border-radius: 20px;
+    border: none;
+    background: #4b5563;   /* グレー系 */
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+        background 0.15s ease,
+        transform 0.08s ease,
+        box-shadow 0.15s ease;
+}
+
+/* ホバー時（マウス乗せたとき） */
+button:hover {
+    background: #374151;   /* ちょっとだけ濃く */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* クリック中 */
+button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.error-message {
+    width: 200px;
+    margin: 0 auto 8px;
+    color: #ef4444;
+    font-size: 13px;
+    text-align: center;
+
+    /* ここから追加・変更 */
+    min-height: 1.2em;   /* 1行分の高さを確保しておく */
+    /* display は消す（最初からブロック要素として存在させる） */
+}
+
+

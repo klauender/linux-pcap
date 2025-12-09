@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinaP</title>
-    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
     <div class="login-wrapper">
         <div class="login-card">
             <h2>login</h2>
-            <form>
+
+            <form action="/login" method="post">
                 <div class="select-wrapper">
                     <label for="role">権限</label>
                     <select id="role" name="role">
@@ -26,8 +27,11 @@
                         name="password"
                     />
                 </div>
+                <div id="error-message" class="error-message"></div>
+                <button type="submit">login</button>
             </form>
         </div>
     </div>
+    <script src="js/login.js"></script>
 </body>
 </html>
