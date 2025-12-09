@@ -24,13 +24,13 @@
                 <li class="menu-item">
                     <a href="/index" class="menu-link active">
                         <span class="material-symbols-rounded">dashboard</span>
-                        <span class="menu-label">ダッシュボード</span>
+                        <span class="menu-label">フロー</span>
                     </a>
                 </li>
                 <li class="menu-item">
-                    <a href="/settings" class="menu-link">
-                        <span class="material-symbols-rounded">settings</span>
-                        <span class="menu-label">設定</span>
+                    <a href="/realtime" class="menu-link">
+                        <span class="material-symbols-rounded">monitoring</span>
+                        <span class="menu-label">リアルタイム</span>
                     </a>
                 </li>
             </ul>
@@ -41,6 +41,10 @@
         
         <!-- sidebar-footer -->
         <div class="sidebar-footer">
+            <a href="/settings" class="menu-link">
+                <span class="material-symbols-rounded">settings</span>
+                <span class="menu-label">設定</span>
+            </a>
             <a href="/logout" class="menu-link menu-link-logout">
                 <span class="material-symbols-rounded">logout</span>
                 <span class="menu-label">ログアウト</span>
@@ -86,15 +90,6 @@
                 <h2 class="chart-title">通信方向 (パケット単位)</h2> <!--Traffic Direction (packets)-->
                 <div class="chart-wrapper-pie">
                     <canvas id="packetsByDirection"></canvas>
-                </div>
-            </section>
-        </div>
-
-        <div class="display-flex realtime">
-            <section class="chart-section-bar">
-                <h2 class="chart-title">リアルタイム パケットデータ量 (5秒間隔)</h2>
-                <div class="chart-wrapper-bar">
-                    <canvas id="realtimePackets"></canvas>
                 </div>
             </section>
         </div>

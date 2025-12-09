@@ -103,6 +103,16 @@ app.get("/settings", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/settings.html"));
 });
 
+// GET /realtime : リアルタイムページ
+app.get("/realtime", (req, res) => {
+    // ログイン確認
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/realtime.html"));
+});
+
 
 // =====================
 //  ここから下は既存API

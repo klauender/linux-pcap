@@ -206,37 +206,6 @@ window.updateChartsTheme = function updateChartsTheme() {
         packetsByDirectionChartData.update();
     }
     
-    // realtimePacketsChartData
-    if (realtimePacketsChartData) {
-        if (realtimePacketsChartData.options.plugins) {
-            if (realtimePacketsChartData.options.plugins.legend) {
-                realtimePacketsChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (realtimePacketsChartData.options.plugins.tooltip) {
-                realtimePacketsChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                realtimePacketsChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        if (realtimePacketsChartData.options.scales) {
-            if (realtimePacketsChartData.options.scales.x) {
-                realtimePacketsChartData.options.scales.x.grid.color = commonOptions.scales.x.grid.color;
-                realtimePacketsChartData.options.scales.x.grid.borderColor = commonOptions.scales.x.grid.borderColor;
-                realtimePacketsChartData.options.scales.x.ticks.color = textColor;
-                if (realtimePacketsChartData.options.scales.x.title) {
-                    realtimePacketsChartData.options.scales.x.title.color = textColor;
-                }
-            }
-            if (realtimePacketsChartData.options.scales.y) {
-                realtimePacketsChartData.options.scales.y.grid.color = commonOptions.scales.y.grid.color;
-                realtimePacketsChartData.options.scales.y.grid.borderColor = commonOptions.scales.y.grid.borderColor;
-                realtimePacketsChartData.options.scales.y.ticks.color = textColor;
-                if (realtimePacketsChartData.options.scales.y.title) {
-                    realtimePacketsChartData.options.scales.y.title.color = textColor;
-                }
-            }
-        }
-        realtimePacketsChartData.update();
-    }
 }
 
 // テーマ変更イベントをリッスン
@@ -258,12 +227,11 @@ async function loadFlows() {
 
     try {
         //resが帰ってくるまで待つ
-        const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes, packetsByDirectionRes, realtimePacketsRes] = await Promise.all([
+        const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes, packetsByDirectionRes] = await Promise.all([
             fetch("/api/flowsByBytes"),
             fetch("/api/flowsByPackets"),
             fetch("/api/bytesByDirection"),
             fetch("/api/packetsByDirection"),
-            fetch("/api/realtimePackets?limit=60"),
         ]);
 
         
@@ -281,17 +249,13 @@ async function loadFlows() {
         if(!packetsByDirectionRes.ok) {  
             throw new Error("HTTP error" + packetsByDirectionRes.status);
         }
-        if(!realtimePacketsRes.ok) {  
-            throw new Error("HTTP error" + realtimePacketsRes.status);
-        }
 
         //json形式→jsオブジェクト形式に解凍 jsonパース
-        const [flowsByBytesData, flowsByPacketsData, bytesByDirectionData, packetsByDirectionData, realtimePacketsData] = await Promise.all([
+        const [flowsByBytesData, flowsByPacketsData, bytesByDirectionData, packetsByDirectionData] = await Promise.all([
             flowsByBytesRes.json(),
             flowsByPacketsRes.json(),
             bytesByDirectionRes.json(),
-            packetsByDirectionRes.json(),
-            realtimePacketsRes.json()
+            packetsByDirectionRes.json()
         ]);
 
         //グラフ描画関数
@@ -299,7 +263,6 @@ async function loadFlows() {
         flowsByPacketsChart(flowsByPacketsData);
         bytesByDirectionChart(bytesByDirectionData)
         packetsByDirectionChart(packetsByDirectionData);
-        realtimePacketsChart(realtimePacketsData);
         
         //ここから先の場所でdataを使ってhtmlに表示やグラフ化する
 
@@ -650,97 +613,6 @@ function packetsByDirectionChart(data) {
     }
 }
 
-
-let realtimePacketsChartData = null;
-
-function realtimePacketsChart(data) {
-    const canvas = document.getElementById("realtimePackets");
-    
-    if (!canvas) {
-        console.error("not found <canvas> in html");
-        return;
-    }
-
-    // データをMB単位に変換
-    const labels = data.map(row => {
-        const date = new Date(row.timestamp * 1000);
-        return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    });
-    const bytesData = data.map(row => parseFloat((row.total_bytes / (1024 * 1024)).toFixed(2))); // MB単位
-
-    if (!realtimePacketsChartData) {
-        const ctx = canvas.getContext("2d");
-        const gradient = createGradient(ctx, chartColors.gradient1[0], chartColors.gradient1[1]);
-
-        realtimePacketsChartData = new Chart(canvas, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "データ量 (MB)",
-                    data: bytesData,
-                    backgroundColor: gradient,
-                    borderColor: chartColors.primary,
-                    borderWidth: 2,
-                    borderRadius: {
-                        topLeft: 6,
-                        topRight: 6
-                    },
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                return "データ量: " + context.parsed.y.toFixed(2) + " MB";
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        ...getCommonChartOptions().scales.y,
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: "データ量 (MB)",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        }
-                    },
-                    x: {
-                        ...getCommonChartOptions().scales.x,
-                        title: {
-                            display: true,
-                            text: "時刻",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        }
-                    }
-                },
-                animation: {
-                    duration: 0 // リアルタイム更新のためアニメーションを無効化
-                }
-            }
-        });
-    } else {
-        // 更新処理
-        realtimePacketsChartData.data.labels = labels;
-        realtimePacketsChartData.data.datasets[0].data = bytesData;
-        realtimePacketsChartData.update('none'); // アニメーションなしで更新
-    }
-}
 
 let timerId;
 //ページが読み込まれたらloadFlowsを実行する

@@ -230,3 +230,24 @@ body.dark-theme .settings-menu-item:hover {
 body.dark-theme .settings-page-title {
     color: var(--color-text-primary);
 }
+
+/* ページヘッダー */
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+/* リアルタイムページ用のフルサイズチャート */
+.chart-section-full {
+    width: 100%;
+}
+
+.chart-wrapper-large {
+    height: 500px;
+}

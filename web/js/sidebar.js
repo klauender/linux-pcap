@@ -23,6 +23,12 @@ document.addEventListener("DOMContentLoaded", () => {
         themeIcon.textContent = sidebar.classList.contains("collapsed") ? (isDark ? "light_mode" : "dark_mode") : "dark_mode";
     };
 
+    // サイドバーの折りたたみ状態を復元
+    const savedSidebarState = localStorage.getItem("sidebarCollapsed");
+    if (savedSidebarState === "true") {
+        sidebar.classList.add("collapsed");
+    }
+
     const savedTheme = localStorage.getItem("theme");
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const shouldUseDarkTheme = savedTheme === "dark" || (!savedTheme && systemPrefersDark);
@@ -35,6 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // .toggleは、指定したクラスがあれば外し、なければ付ける動作をする
     sidebarToggleBtn.addEventListener("click", () => {
         sidebar.classList.toggle("collapsed");
+        // サイドバーの状態を保存
+        localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed"));
         updateThemeIcon();
     });
 

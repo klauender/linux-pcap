@@ -212,6 +212,7 @@ body{
     gap: 8px;
 }
 
+.sidebar-footer .menu-link,
 .sidebar-footer .menu-link-logout {
     width: 100%;
     display: flex;
@@ -221,8 +222,27 @@ body{
     border-radius: 8px;
     text-decoration: none;
     white-space: nowrap;
+    color: var(--color-text-primary);
+    transition: 0.3s ease;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
 }
 
+.sidebar-footer .menu-link:hover {
+    color: #fff;
+    background: var(--color-hover-primary);
+}
+
+.sidebar-footer .menu-link.active {
+    color: #fff;
+    background: var(--color-hover-primary);
+}
+
+.sidebar.collapsed .sidebar-footer .menu-link .menu-label,
 .sidebar.collapsed .sidebar-footer .menu-link-logout .menu-label {
     opacity: 0;
     pointer-events: none;
