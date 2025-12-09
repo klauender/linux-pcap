@@ -1,103 +1,154 @@
-* {
-    margin: 0;
-    padding: 0;
-}
-
 html, body {
     height: 100vh;
 }
 
 body {
     display: flex;
-    justify-content: center; /* displayflexからの横方向センター */
-    align-items: center;     /* displayflexからの縦方向センター */
-    background: #f3f4f6;
+    justify-content: center;
+    align-items: center;
+    background: var(--color-bg-primary);
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
 }
 
 .login-card {
-    background: #ffffff;
-    padding: 24px 28px;
-    border-radius: 10px;
-    /*box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); */
-    border: 2px solid rgb(145, 145, 145);
-    width: 500px;
+    background: var(--color-bg-sidebar);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px var(--color-shadow);
+    border: 1px solid var(--color-border-hr);
+    width: 100%;
 }
 
-.login-card h2 {
-    margin-top: 25px;
-    margin-bottom: 60px;
+.login-header {
     text-align: center;
-    font-size: 25px;
-}
-
-label {
-    display: block; /*?*/
-    margin-bottom: 10px;
-    font-size: 17px;
-    text-align: center;
-}
-
-.select-wrapper, 
-.password-wrapper {
     margin-bottom: 40px;
 }
 
-button,
-select,
-input[type="password"] {
-    width: 200px;
-    display: block;
-    margin: 0 auto;
-    padding: 4px 7.5px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
+.login-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 8px 0;
+}
+
+.login-subtitle {
+    font-size: 16px;
+    color: var(--color-text-placeholder);
+    margin: 0;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
-}
-
-/* ボタン用 */
-button {
-    width: 200px;          /* select / input と同じ幅 */
-    display: block;
-    margin: 0 auto;        /* 横方向の中央寄せ */
-    padding: 8px 0;
-    border-radius: 20px;
-    border: none;
-    background: #4b5563;   /* グレー系 */
-    color: #ffffff;
-    font-size: 15px;
     font-weight: 500;
-    cursor: pointer;
+    color: var(--color-text-primary);
+    margin-bottom: 0;
+}
+
+.form-icon {
+    font-size: 20px;
+    color: var(--color-text-placeholder);
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--color-border-hr);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     box-sizing: border-box;
-    transition:
-        background 0.15s ease,
-        transform 0.08s ease,
-        box-shadow 0.15s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* ホバー時（マウス乗せたとき） */
-button:hover {
-    background: #374151;   /* ちょっとだけ濃く */
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-hover-primary);
+    box-shadow: 0 0 0 3px rgba(105, 92, 254, 0.1);
+}
+
+.form-input::placeholder {
+    color: var(--color-text-placeholder);
+}
+
+.login-button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    background: var(--color-hover-primary);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+    margin-top: 8px;
+}
+
+.login-button:hover {
+    background: #5a4fe0;
     transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 12px rgba(105, 92, 254, 0.3);
 }
 
-/* クリック中 */
-button:active {
+.login-button:active {
     transform: translateY(0);
-    box-shadow: none;
+    box-shadow: 0 2px 6px rgba(105, 92, 254, 0.2);
+}
+
+.login-button .material-symbols-rounded {
+    font-size: 20px;
 }
 
 .error-message {
-    width: 200px;
-    margin: 0 auto 8px;
+    width: 100%;
     color: #ef4444;
-    font-size: 13px;
+    font-size: 14px;
     text-align: center;
+    padding: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
 
-    /* ここから追加・変更 */
-    min-height: 1.2em;   /* 1行分の高さを確保しておく */
-    /* display は消す（最初からブロック要素として存在させる） */
+.error-message:empty {
+    display: none;
+}
+
+/* ダークテーマ対応 */
+body.dark-theme .login-card {
+    background: var(--color-bg-sidebar);
+    border-color: var(--color-border-hr);
+}
+
+body.dark-theme .form-input {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border-hr);
+    color: var(--color-text-primary);
 }
 
 

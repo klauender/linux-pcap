@@ -4,31 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinaP</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
     <div class="login-wrapper">
         <div class="login-card">
-            <h2>login</h2>
+            <div class="login-header">
+                <h1 class="login-title">LinaP</h1>
+                <p class="login-subtitle">ログイン</p>
+            </div>
 
-            <form action="/login" method="post">
-                <div class="select-wrapper">
-                    <label for="role">権限</label>
-                    <select id="role" name="role">
-                        <option value="admin">admin(管理者)</option>
-                        <option value="operator">operator(閲覧者)</option>
+            <form action="/login" method="post" class="login-form">
+                <div class="form-group">
+                    <label for="role">
+                        <span class="material-symbols-rounded form-icon">person</span>
+                        権限
+                    </label>
+                    <select id="role" name="role" class="form-input">
+                        <option value="admin">admin（管理者）</option>
+                        <option value="operator">operator（閲覧者）</option>
                     </select>
                 </div>
-                <div class="password-wrapper">
-                    <label for="password">password</label>
+                <div class="form-group">
+                    <label for="password">
+                        <span class="material-symbols-rounded form-icon">lock</span>
+                        パスワード
+                    </label>
                     <input
                         type="password"
                         id="password"
                         name="password"
+                        class="form-input"
+                        placeholder="パスワードを入力"
                     />
                 </div>
                 <div id="error-message" class="error-message"></div>
-                <button type="submit">login</button>
+                <button type="submit" class="login-button">
+                    <span class="material-symbols-rounded">login</span>
+                    <span>ログイン</span>
+                </button>
             </form>
         </div>
     </div>

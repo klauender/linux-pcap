@@ -1,43 +1,61 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const modal = document.getElementById("password-modal");
-    const openBtn = document.getElementById("change-password-btn");
-    const closeBtn = document.querySelector(".password-modal-close");
-    const cancelBtn = document.querySelector(".cancel-btn");
+    const passwordModal = document.getElementById("password-modal");
+    const changePasswordBtn = document.getElementById("change-password-btn");
+    const passwordCloseBtn = document.getElementById("password-modal-close-btn");
+    const passwordCancelBtn = document.getElementById("password-cancel-btn");
     const form = document.getElementById("password-change-form");
     const errorMsg = document.getElementById("password-error");
     const successMsg = document.getElementById("password-success");
 
-    // モーダルを開く
-    if (openBtn) {
-        openBtn.addEventListener("click", () => {
-            modal.classList.add("show");
-            // フォームをリセット
-            form.reset();
-            errorMsg.textContent = "";
-            successMsg.textContent = "";
-        });
-    }
+    if (!passwordModal) return;
 
-    // モーダルを閉じる
-    const closeModal = () => {
-        modal.classList.remove("show");
-        form.reset();
-        errorMsg.textContent = "";
-        successMsg.textContent = "";
+    // パスワード変更モーダルを開く関数
+    const openPasswordModal = () => {
+        passwordModal.classList.add("show");
+        // フォームをリセット
+        if (form) {
+            form.reset();
+        }
+        if (errorMsg) {
+            errorMsg.textContent = "";
+        }
+        if (successMsg) {
+            successMsg.textContent = "";
+        }
     };
 
-    if (closeBtn) {
-        closeBtn.addEventListener("click", closeModal);
+    // パスワード変更モーダルを閉じる関数
+    const closePasswordModal = () => {
+        passwordModal.classList.remove("show");
+        if (form) {
+            form.reset();
+        }
+        if (errorMsg) {
+            errorMsg.textContent = "";
+        }
+        if (successMsg) {
+            successMsg.textContent = "";
+        }
+    };
+
+    // パスワード変更ボタンでパスワード変更モーダルを開く
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener("click", openPasswordModal);
     }
 
-    if (cancelBtn) {
-        cancelBtn.addEventListener("click", closeModal);
+    // パスワード変更モーダルを閉じる
+    if (passwordCloseBtn) {
+        passwordCloseBtn.addEventListener("click", closePasswordModal);
+    }
+
+    if (passwordCancelBtn) {
+        passwordCancelBtn.addEventListener("click", closePasswordModal);
     }
 
     // モーダル外をクリックで閉じる
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-            closeModal();
+    passwordModal.addEventListener("click", (e) => {
+        if (e.target === passwordModal) {
+            closePasswordModal();
         }
     });
 
@@ -84,13 +102,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    successMsg.textContent = data.message || "パスワードが正常に変更されました";
-                    // 3秒後にモーダルを閉じる
-                    setTimeout(() => {
-                        closeModal();
-                    }, 2000);
+                    if (successMsg) {
+                        successMsg.textContent = data.message || "パスワードが正常に変更されました";
+                    }
+                    // フォームをリセット
+                    if (form) {
+                        form.reset();
+                    }
                 } else {
-                    errorMsg.textContent = data.error || "パスワードの変更に失敗しました";
+                    if (errorMsg) {
+                        errorMsg.textContent = data.error || "パスワードの変更に失敗しました";
+                    }
                 }
             } catch (err) {
                 console.error("パスワード変更エラー:", err);

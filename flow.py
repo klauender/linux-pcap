@@ -2,6 +2,7 @@ import sys
 import sqlite3
 import time
 import ipaddress
+import threading
 from scapy.all import PcapReader, IP, TCP, UDP
 
 
@@ -25,8 +26,31 @@ idle_timeout = 3
 conn = sqlite3.connect("flow.db")
 cur = conn.cursor()
 
+# 5秒ごとのパケット集計用のテーブルを作成
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS realtime_packets (
+        timestamp INTEGER PRIMARY KEY,
+        total_bytes INTEGER NOT NULL,
+        total_packets INTEGER NOT NULL
+    )
+""")
+conn.commit()
+
+# 5秒ごとのパケット集計用の辞書
+realtime_aggregates = {}
+# {
+#   timestamp_5sec: {
+#       "total_bytes": 0,
+#       "total_packets": 0
+#   }
+# }
+
 
 def main():
+
+    # 5秒ごとにリアルタイム集計データを保存するスレッドを開始
+    save_thread = threading.Thread(target=periodic_save_realtime, daemon=True)
+    save_thread.start()
 
     #sys.stdin.buffer=tcpdumpから流れてくるpcap形式のバイナリを読み込む
     #scapyのPcapReader()という関数にそれを渡すと1パケットずつ読み取ってくれる
@@ -75,7 +99,8 @@ def main():
 
             key = (src_ip, dst_ip, src_port, dst_port, protocol)
             update_flow(key, timestamp, length, flags)
-            update_packet(timestamp, length)
+            # リアルタイム集計は現在時刻を使用（パケットのタイムスタンプではなく）
+            update_realtime_aggregate(time.time(), length)
 
             now = time.time()
             cleanup(now)
@@ -219,60 +244,86 @@ def cleanup(now):
         del flows[key]
 
 
-
-#定期秒ごとにパケット集計
-secPackets = {}
-# (secSection) : {
-#    "totalBytes": 18339
-#    "totalPackets":  89
-#}
-
-def update_packet (timestamp, length):
-
-    secSection = timestamp // 5
-
-    if secSection not in secPackets:
-
-        secPackets[secSection] = {
-            "totalBytes": length,
-            "totalPackets": 1
+def update_realtime_aggregate(timestamp, length):
+    """5秒ごとのパケット集計を更新"""
+    # 5秒間隔のタイムスタンプを計算（5秒単位に切り捨て）
+    timestamp_5sec = int(timestamp // 5) * 5
+    
+    if timestamp_5sec not in realtime_aggregates:
+        realtime_aggregates[timestamp_5sec] = {
+            "total_bytes": 0,
+            "total_packets": 0
         }
-
-        cleanupSecPackets(secSection)
-
-    else:
-        f = secPackets[secSection]
-        f["totalBytes"] += length
-        f["totalPackets"] += 1
-
-
-
-def cleanupSecPackets(secSection):
-    expired_secPacketsKey = []
-
-    for key, value in secPackets.items():    #.item()はkey-value形式で取り出す
-        if key < secSection:
-            save_packetDB(key, value)
-            expired_secPacketsKey.append(key)
     
-    for key in expired_secPacketsKey:
-        del secPackets[key]
+    realtime_aggregates[timestamp_5sec]["total_bytes"] += length
+    realtime_aggregates[timestamp_5sec]["total_packets"] += 1
+
+
+def save_realtime_aggregates():
+    """5秒ごとの集計データをDBに保存"""
+    current_time = time.time()
+    current_timestamp_5sec = int(current_time // 5) * 5
     
-
-
-def save_packetDB(key, value): 
-            
-        cur.execute("""
-            INSERT INTO packets
-            (secSection, totalBytes, totalPackets)
-            VALUES(?, ?, ?)
-        """, (
-            key,
-            value["totalBytes"],
-            value["totalPackets"]
-        ))
-
+    # デバッグ: 辞書の状態を確認
+    if len(realtime_aggregates) > 0:
+        print(f"realtime_aggregates辞書の状態: {len(realtime_aggregates)}件のデータがあります")
+        for ts, data in list(realtime_aggregates.items())[:3]:  # 最初の3件を表示
+            print(f"  timestamp={ts}, bytes={data['total_bytes']}, packets={data['total_packets']}")
+    
+    # realtime_aggregates辞書内のすべてのデータを保存
+    # タイムスタンプの範囲を広げて、過去のデータも保存できるようにする
+    saved_count = 0
+    for timestamp_5sec, data in realtime_aggregates.items():
+        # タイムスタンプの差を計算（絶対値で比較）
+        time_diff = abs(current_timestamp_5sec - timestamp_5sec)
+        # 60秒以内のデータを保存（より広い範囲）
+        if time_diff <= 60:
+            try:
+                cur.execute("""
+                    INSERT OR REPLACE INTO realtime_packets
+                    (timestamp, total_bytes, total_packets)
+                    VALUES(?, ?, ?)
+                """, (
+                    timestamp_5sec,
+                    data["total_bytes"],
+                    data["total_packets"]
+                ))
+                saved_count += 1
+                print(f"データを保存: timestamp={timestamp_5sec}, bytes={data['total_bytes']}, packets={data['total_packets']}")
+            except Exception as e:
+                print(f"データ保存エラー (timestamp={timestamp_5sec}): {e}")
+                import traceback
+                traceback.print_exc()
+    
+    if saved_count > 0:
         conn.commit()
+        print(f"リアルタイム集計データ {saved_count} 件を保存しました")
+    else:
+        if len(realtime_aggregates) > 0:
+            print(f"警告: realtime_aggregatesに{len(realtime_aggregates)}件のデータがありますが、保存されませんでした")
+            print(f"現在時刻の5秒間隔: {current_timestamp_5sec}")
+    
+    # 60秒以上古いデータを削除（メモリ節約）
+    expired_keys = []
+    for timestamp_5sec in realtime_aggregates.keys():
+        if abs(current_timestamp_5sec - timestamp_5sec) > 60:
+            expired_keys.append(timestamp_5sec)
+    
+    for key in expired_keys:
+        del realtime_aggregates[key]
+
+
+def periodic_save_realtime():
+    """5秒ごとにリアルタイム集計データを保存するスレッド"""
+    print("リアルタイム集計スレッドを開始しました")
+    while True:
+        time.sleep(5)  # 5秒待機
+        try:
+            save_realtime_aggregates()
+        except Exception as e:
+            print(f"リアルタイム集計保存エラー: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 #ファイルを直接実行したときにmainを実行

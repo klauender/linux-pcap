@@ -12,7 +12,7 @@
     /* Light theme colors */
     --color-text-primary: #1F2936;
     --color-text-placeholder: #798EAE;
-    --color-bg-primary: #f9fafb;
+    --color-bg-primary: #ffffff;
     --color-bg-secondary: #ECECFD;
     --color-bg-sidebar: #FFFFFF;
     --color-border-hr: #E2E8F0;
@@ -35,6 +35,7 @@ body.dark-theme {
 
 body{
     background: var(--color-bg-primary);
+    display: flex;
 }
 
 .sidebar {
@@ -61,20 +62,23 @@ body{
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--color-border-hr);
+    position: relative;
 }
 
-.sidebar-header .header-logo {
-    width: 46px;
-    height: 46px;
-    object-fit: cover;
-    display: block;
-    border-radius: 50%;
+.sidebar-header .header-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
     transition: 0.4s ease;
+    white-space: nowrap;
 }
 
-.sidebar.collapsed .sidebar-header .header-logo {
-    opacity: 0; /*透明にする 要素としては存在する*/
-    pointer-events: none; /* イベントも無効化 opacity:0と組み合わせて完全に存在を消す*/
+.sidebar.collapsed .sidebar-header .header-title {
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    overflow: hidden;
 }
 
 .sidebar-header .sidebar-toggle {
@@ -124,48 +128,15 @@ body{
     scrollbar-width: none;
 }
 
-.sidebar-content .search-form {
-    min-height: 48px;
-    border-radius: 8px;
-    display: flex;
-    padding:  0 15px;
-    margin: 5px 0 20px;
-    align-items: center;
-    white-space: nowrap;
-    background: var(--color-bg-secondary);
-    transition: 0.4s ease;
-}
-
-.sidebar.collapsed .sidebar-content .search-form:hover {
-    cursor: pointer;
-}
-
-.sidebar.collapsed .sidebar-content .search-form:hover,
-.sidebar-content .search-form:focus-within {
-    background: var(--color-hover-secondary);
-}
-
-.search-form input {
-    border: none;
-    background: none;
-    outline: none;
-    width: 100%;
-    margin-left: 15px;
-    color: var(--color-text-primary);
-}
-
-.search-form span {
-    color: var(--color-text-placeholder);
-}
-
-.search-form input::placeholder {
-    color: var(--color-text-placeholder);
-}
 
 .sidebar-content .menu-list {
     display: flex;
     gap: 4px;
     flex-direction: column;
+    list-style: none;
+}
+
+.menu-list .menu-item {
     list-style: none;
 }
 
@@ -176,9 +147,16 @@ body{
     gap: 12px;  /*子と子の要素の間に隙間*/
     white-space: nowrap;
     padding: 12px 15px;
-    border-radius: 8px;;
+    border-radius: 8px;
     color: var(--color-text-primary);
     transition: 0.3s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
 }
 
 .menu-link .menu-label {
@@ -195,10 +173,59 @@ body{
     background: var(--color-hover-primary);
 }
 
+.menu-link-logout {
+    background: #ef4444 !important;
+    color: #fff !important;
+}
+
+.menu-link-logout:hover {
+    background: #dc2626 !important;
+    color: #fff !important;
+}
+
+.login-status-footer {
+    padding: 12px 18px;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-hr);
+    text-align: center;
+    transition: 0.4s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .login-status-footer {
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    border: none;
+    overflow: hidden;
+}
+
 .sidebar .sidebar-footer {
     padding: 20px 18px;
-    white-space: nowrap;    /*絶対改行しない*/
+    white-space: nowrap;
     border-top: 1px solid var(--color-border-hr);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-footer .menu-link-logout {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.sidebar.collapsed .sidebar-footer .menu-link-logout .menu-label {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .sidebar-footer .theme-toggle {
@@ -242,7 +269,7 @@ body{
     position: relative; /*子要素の絶対位置指定の基準にする*/
     border-radius: 999px;
     margin-left: auto;
-    background: #c3d1ec;;
+    background: #c3d1ec;
     transition: opacity 0.4s 0.2s ease, background-color 0.3s ease;
 }
 
@@ -265,3 +292,4 @@ body.dark-theme .theme-toggle .theme-toggle-track {
 body.dark-theme .theme-toggle-track .theme-toggle-indicator {
     transform: translateX(24px);    /*円が移動*/
 }
+

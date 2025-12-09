@@ -93,6 +93,16 @@ app.get("/index", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/index.html"));
 });
 
+// GET /settings : 設定ページ
+app.get("/settings", (req, res) => {
+    // ログイン確認
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/settings.html"));
+});
+
 
 // =====================
 //  ここから下は既存API
@@ -240,6 +250,32 @@ app.get("/api/packetsByDirection", (req, res) => {
         }
         
         res.json(rows);
+    });
+});
+
+// リアルタイムパケットデータ取得API（最新60件 = 5分間分）
+app.get("/api/realtimePackets", (req, res) => {
+    const limit = parseInt(req.query.limit) || 60; // デフォルト60件（5分間）
+    
+    const sql = `
+        SELECT 
+            timestamp,
+            total_bytes,
+            total_packets
+        FROM realtime_packets
+        ORDER BY timestamp DESC
+        LIMIT ?
+    `;
+    
+    db.all(sql, [limit], (err, rows) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        // 時系列順にソート（古い順）
+        const sortedRows = rows.reverse();
+        res.json(sortedRows);
     });
 });
 

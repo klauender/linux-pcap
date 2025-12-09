@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const statusEl = document.getElementById("login-status");
+    const statusEl = document.getElementById("login-status-footer");
     if (!statusEl) return;
 
     fetch("/api/session")
@@ -14,11 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!data || !data.loggedIn) return;
 
             // roleに応じて表示文字を決める
-            let roleLabel = data.role;
+            let roleLabel = "";
             if (data.role === "admin") {
                 roleLabel = "admin（管理者）";
             } else if (data.role === "operator") {
                 roleLabel = "operator（閲覧者）";
+            } else {
+                roleLabel = data.role;
             }
 
             statusEl.textContent = roleLabel + " がログイン中";
