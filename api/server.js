@@ -93,11 +93,16 @@ app.get("/index", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/index.html"));
 });
 
-// GET /settings : 設定ページ
+// GET /settings : 設定ページ（adminのみ）
 app.get("/settings", (req, res) => {
     // ログイン確認
     if (!req.session.loggedIn) {
         return res.redirect("/login");
+    }
+    
+    // viewerはアクセス不可
+    if (req.session.role === "viewer") {
+        return res.redirect("/index");
     }
 
     res.sendFile(path.join(__dirname, "../web/settings.html"));
@@ -168,25 +173,35 @@ app.get("/api/session", (req, res) => {
     });
 });
 
-// パスワード変更API
+// パスワード変更API（adminのみ、権限別にパスワード変更可能）
 app.post("/api/change-password", (req, res) => {
     // ログイン確認
     if (!req.session || !req.session.loggedIn) {
         return res.status(401).json({ success: false, error: "ログインが必要です" });
     }
 
-    const role = req.session.role;
+    // adminのみ実行可能
+    if (req.session.role !== "admin") {
+        return res.status(403).json({ success: false, error: "管理者権限が必要です" });
+    }
+
+    const targetRole = req.body.targetRole;
     const oldPassword = req.body.oldPassword;
     const newPassword = req.body.newPassword;
 
     // 入力チェック
-    if (!oldPassword || !newPassword) {
-        return res.status(400).json({ success: false, error: "現在のパスワードと新しいパスワードを入力してください" });
+    if (!targetRole || !oldPassword || !newPassword) {
+        return res.status(400).json({ success: false, error: "すべてのフィールドを入力してください" });
+    }
+
+    // 対象権限の検証
+    if (targetRole !== "admin" && targetRole !== "viewer") {
+        return res.status(400).json({ success: false, error: "無効な権限です" });
     }
 
     // 現在のパスワードを確認
     const checkSql = "SELECT password FROM login WHERE role = ?";
-    db.get(checkSql, [role], (err, row) => {
+    db.get(checkSql, [targetRole], (err, row) => {
         if (err) {
             console.error("DB error:", err);
             return res.status(500).json({ success: false, error: "データベースエラーが発生しました" });
@@ -198,13 +213,13 @@ app.post("/api/change-password", (req, res) => {
 
         // パスワードを更新
         const updateSql = "UPDATE login SET password = ? WHERE role = ?";
-        db.run(updateSql, [newPassword, role], (updateErr) => {
+        db.run(updateSql, [newPassword, targetRole], (updateErr) => {
             if (updateErr) {
                 console.error("DB error:", updateErr);
                 return res.status(500).json({ success: false, error: "パスワードの更新に失敗しました" });
             }
 
-            res.json({ success: true, message: "パスワードが正常に変更されました" });
+            res.json({ success: true, message: `${targetRole}のパスワードが正常に変更されました` });
         });
     });
 });

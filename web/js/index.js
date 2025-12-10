@@ -19,6 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 roleLabel = "admin";
             } else if (data.role === "viewer") {
                 roleLabel = "viewer";
+                // viewerの場合は設定リンクのみ非表示（リンク要素自体を消す）
+                const settingsLink = document.querySelector('a[href="/settings"]');
+                if (settingsLink) {
+                    settingsLink.style.display = 'none';
+                }
             } else {
                 roleLabel = data.role;
             }

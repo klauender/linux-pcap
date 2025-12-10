@@ -1027,36 +1027,37 @@ function packetsByProtocolChart(data) {
 }
 
 
-// キャプチャ状態をチェックしてステータスインジケーターを更新
+// キャプチャ状態をチェックしてインジケーターを更新
 async function checkCaptureStatus() {
     try {
         const res = await fetch("/api/captureStatus");
         if (!res.ok) return;
         
         const data = await res.json();
-        const indicators = document.querySelectorAll('.status-indicator');
-        const isDark = document.body.classList.contains('dark-theme');
         
-        indicators.forEach(indicator => {
-            const dot = indicator.querySelector('.status-dot');
-            const text = indicator.querySelector('span:last-child');
-            
+        // グラフタイトルのインジケーター
+        const titles = document.querySelectorAll('.chart-title');
+        titles.forEach(title => {
             if (data.active) {
-                if (dot) {
-                    dot.style.background = isDark ? '#00ff9f' : '#22c55e';
-                    dot.style.animation = 'pulse 2s infinite';
-                    dot.style.boxShadow = isDark ? '0 0 10px rgba(0, 255, 159, 0.5)' : '';
-                }
-                if (text) text.textContent = 'Running';
+                title.classList.remove('stopped');
+                title.classList.add('running');
             } else {
-                if (dot) {
-                    dot.style.background = '#ef4444';
-                    dot.style.animation = 'none';
-                    dot.style.boxShadow = isDark ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none';
-                }
-                if (text) text.textContent = 'Stopped';
+                title.classList.remove('running');
+                title.classList.add('stopped');
             }
         });
+        
+        // サイドバーのLinaPタイトルのインジケーター
+        const headerTitle = document.querySelector('.header-title');
+        if (headerTitle) {
+            if (data.active) {
+                headerTitle.classList.remove('stopped');
+                headerTitle.classList.add('running');
+            } else {
+                headerTitle.classList.remove('running');
+                headerTitle.classList.add('stopped');
+            }
+        }
     } catch (err) {
         console.error("Failed to check capture status:", err);
     }

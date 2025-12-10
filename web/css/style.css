@@ -85,6 +85,51 @@ body.dark-theme .sidebar-header .header-title {
     opacity: 0.8;
 }
 
+/* LinaPの「P」のステータス表示 */
+.header-title .status-letter {
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.header-title.running .status-letter {
+    color: #00ff9f;
+    animation: statusGlowLight 3s ease-in-out infinite;
+}
+
+.header-title.stopped .status-letter {
+    color: #ef4444;
+}
+
+body.dark-theme .header-title.running .status-letter {
+    color: #00ff9f;
+    animation: statusGlowDark 3s ease-in-out infinite;
+}
+
+body.dark-theme .header-title.stopped .status-letter {
+    color: #ef4444;
+}
+
+@keyframes statusGlowLight {
+    0%, 100% {
+        color: #00ff9f;
+        text-shadow: none;
+    }
+    50% {
+        color: #5fffbc;
+        text-shadow: 0 0 4px rgba(0, 255, 159, 0.3);
+    }
+}
+
+@keyframes statusGlowDark {
+    0%, 100% {
+        color: #00ff9f;
+        text-shadow: 0 0 3px rgba(0, 255, 159, 0.4);
+    }
+    50% {
+        color: #5fffbc;
+        text-shadow: 0 0 8px rgba(0, 255, 159, 0.6);
+    }
+}
+
 .sidebar.collapsed .sidebar-header .header-title {
     opacity: 0;
     pointer-events: none;

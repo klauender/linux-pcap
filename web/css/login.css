@@ -18,7 +18,7 @@ body {
 .login-card {
     background: var(--color-bg-sidebar);
     padding: 40px;
-    border-radius: 16px;
+    border-radius: 8px;
     box-shadow: 0 4px 24px var(--color-shadow);
     border: 1px solid var(--color-border-hr);
     width: 100%;

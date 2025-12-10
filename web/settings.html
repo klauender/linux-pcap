@@ -12,7 +12,7 @@
 <body>
     <aside class="sidebar">
         <header class="sidebar-header">
-            <a href="/index" class="header-title">LinaP</a>
+            <a href="/index" class="header-title">Lina<span class="status-letter">P</span></a>
             <button class="sidebar-toggle">
                 <span class="material-symbols-rounded">chevron_left</span>
             </button>
@@ -100,6 +100,13 @@
                 <button class="password-modal-close" id="password-modal-close-btn">&times;</button>
             </div>
             <form id="password-change-form">
+                <div class="form-group">
+                    <label for="target-role">変更する権限</label>
+                    <select id="target-role" name="targetRole" required>
+                        <option value="admin">admin</option>
+                        <option value="viewer">viewer</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="old-password">現在のパスワード</label>
                     <input type="password" id="old-password" name="oldPassword" required>

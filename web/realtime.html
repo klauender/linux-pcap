@@ -9,10 +9,10 @@
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/chart.css">
 </head>
-<body>
+<body class="no-scroll">
     <aside class="sidebar">
         <header class="sidebar-header">
-            <a href="/index" class="header-title">LinaP</a>
+            <a href="/index" class="header-title">Lina<span class="status-letter">P</span></a>
             <button class="sidebar-toggle">
                 <span class="material-symbols-rounded">chevron_left</span>
             </button>
@@ -80,28 +80,49 @@
     </aside>
 
     <main>
+        <div class="realtime-controls">
+            <div class="radio-group">
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="10" checked>
+                    <span class="radio-label">10min<span class="interval-badge">5sec</span></span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="60">
+                    <span class="radio-label">1hour<span class="interval-badge">30sec</span></span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="1440">
+                    <span class="radio-label">1day<span class="interval-badge">10min</span></span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="10080">
+                    <span class="radio-label">1week<span class="interval-badge">1hour</span></span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="40320">
+                    <span class="radio-label">4weeks<span class="interval-badge">6hour</span></span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="time-range" value="525600">
+                    <span class="radio-label">1year<span class="interval-badge">1day</span></span>
+                </label>
+            </div>
+        </div>
+
         <div class="display-flex realtime">
             <section class="chart-section-bar chart-section-full">
-                <h2 class="chart-title">リアルタイム / データ量 (MB)</h2>
+                <h2 class="chart-title" id="bytes-chart-title">リアルタイム / データ量 (MB)</h2>
                 <div class="chart-wrapper-bar chart-wrapper-large">
                     <canvas id="realtimeBytes"></canvas>
-                </div>
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
-                    <span>Running</span>
                 </div>
             </section>
         </div>
 
         <div class="display-flex realtime">
             <section class="chart-section-bar chart-section-full">
-                <h2 class="chart-title">リアルタイム / パケット数</h2>
+                <h2 class="chart-title" id="packets-chart-title">リアルタイム / パケット数</h2>
                 <div class="chart-wrapper-bar chart-wrapper-large">
                     <canvas id="realtimePackets"></canvas>
-                </div>
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
-                    <span>Running</span>
                 </div>
             </section>
         </div>

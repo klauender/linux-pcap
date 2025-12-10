@@ -66,12 +66,13 @@ document.addEventListener("DOMContentLoaded", () => {
             errorMsg.textContent = "";
             successMsg.textContent = "";
 
+            const targetRole = document.getElementById("target-role").value;
             const oldPassword = document.getElementById("old-password").value;
             const newPassword = document.getElementById("new-password").value;
             const confirmPassword = document.getElementById("confirm-password").value;
 
             // バリデーション
-            if (!oldPassword || !newPassword || !confirmPassword) {
+            if (!targetRole || !oldPassword || !newPassword || !confirmPassword) {
                 errorMsg.textContent = "すべてのフィールドを入力してください";
                 return;
             }
@@ -94,6 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
                     body: new URLSearchParams({
+                        targetRole: targetRole,
                         oldPassword: oldPassword,
                         newPassword: newPassword,
                     }),

@@ -169,18 +169,114 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// 現在の時間幅（分）
+let currentTimeRangeMinutes = 10;
+
+// 時間幅に応じた集約間隔（秒）を取得
+function getAggregationInterval(minutes) {
+    if (minutes <= 10) return 5;         // 10分: 5秒ごと (120本)
+    if (minutes === 60) return 30;       // 1時間: 30秒ごと (120本)
+    if (minutes === 1440) return 600;    // 24時間: 10分ごと (144本)
+    if (minutes === 10080) return 3600;  // 1週間: 1時間ごと (168本)
+    if (minutes === 40320) return 21600; // 4週間: 6時間ごと (112本)
+    return 86400;                         // 1年: 24時間ごと (365本)
+}
+
+// 時間幅に応じたデータポイント数を計算
+function getDataPointCount(minutes) {
+    const interval = getAggregationInterval(minutes);
+    return (minutes * 60) / interval;
+}
+
+// 現在時刻をキリのいい数字に切り捨て
+function floorToInterval(date, intervalSeconds) {
+    const ms = date.getTime();
+    const intervalMs = intervalSeconds * 1000;
+    return new Date(Math.floor(ms / intervalMs) * intervalMs);
+}
+
+// 横軸のラベルを生成（データがなくても固定、キリのいい時刻）
+function generateTimeLabels(minutes) {
+    const labels = [];
+    const now = new Date();
+    const dataPoints = getDataPointCount(minutes);
+    const interval = getAggregationInterval(minutes);
+    
+    // 現在時刻をインターバルに合わせて切り捨て
+    const baseTime = floorToInterval(now, interval);
+    
+    for (let i = dataPoints - 1; i >= 0; i--) {
+        const time = new Date(baseTime.getTime() - i * interval * 1000);
+        if (minutes <= 10) {
+            labels.push(time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        } else if (minutes >= 525600) {
+            // 1年: 月/日
+            labels.push(time.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }));
+        } else if (minutes >= 40320) {
+            // 4週間: 日付のみ
+            labels.push(time.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }));
+        } else if (minutes >= 10080) {
+            // 1週間: 日付と時刻
+            labels.push(time.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }) + ' ' + 
+                       time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+        } else {
+            labels.push(time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+        }
+    }
+    return labels;
+}
+
+// データをタイムスタンプでマッピング・集約
+function mapDataToLabels(data, minutes) {
+    const dataPoints = getDataPointCount(minutes);
+    const interval = getAggregationInterval(minutes);
+    // 基準時刻をインターバルに合わせて切り捨て（ラベルと同期）
+    const baseTime = floorToInterval(new Date(), interval);
+    const nowSeconds = Math.floor(baseTime.getTime() / 1000);
+    const result = {
+        bytes: new Array(dataPoints).fill(0),
+        packets: new Array(dataPoints).fill(0)
+    };
+    
+    // データをタイムスタンプでインデックスに変換（集約）
+    data.forEach(row => {
+        const secondsAgo = nowSeconds - row.timestamp;
+        const index = dataPoints - 1 - Math.floor(secondsAgo / interval);
+        if (index >= 0 && index < dataPoints) {
+            // 同じインデックスに複数のデータがある場合は加算
+            result.bytes[index] += parseFloat((row.total_bytes / (1024 * 1024)).toFixed(4));
+            result.packets[index] += row.total_packets;
+        }
+    });
+    
+    // 小数点以下を整理
+    result.bytes = result.bytes.map(v => parseFloat(v.toFixed(2)));
+    
+    return result;
+}
+
+// 時間幅に応じた必要なレコード数を取得（DBは5秒間隔で保存）
+function getRequiredRecordCount(minutes) {
+    return minutes * 12; // 1分 = 12レコード（5秒間隔）
+}
+
 // リアルタイムデータを取得
 async function loadRealtimeData() {
     try {
-        const res = await fetch("/api/realtimePackets?limit=60");
+        // DBから必要な全レコードを取得（5秒間隔のデータ）
+        const limit = getRequiredRecordCount(currentTimeRangeMinutes);
+        const res = await fetch(`/api/realtimePackets?limit=${limit}`);
         
         if (!res.ok) {
             throw new Error("HTTP error" + res.status);
         }
         
         const data = await res.json();
-        realtimeBytesChart(data);
-        realtimePacketsChart(data);
+        const labels = generateTimeLabels(currentTimeRangeMinutes);
+        const mappedData = mapDataToLabels(data, currentTimeRangeMinutes);
+        
+        realtimeBytesChart(labels, mappedData.bytes);
+        realtimePacketsChart(labels, mappedData.packets);
         
     } catch (err) {
         console.error(err);
@@ -190,7 +286,7 @@ async function loadRealtimeData() {
 let realtimeBytesChartData = null;
 
 // リアルタイム データ量（MB単位）グラフ
-function realtimeBytesChart(data) {
+function realtimeBytesChart(labels, bytesData) {
     const canvas = document.getElementById("realtimeBytes");
     
     if (!canvas) {
@@ -198,12 +294,9 @@ function realtimeBytesChart(data) {
         return;
     }
 
-    // データをMB単位に変換
-    const labels = data.map(row => {
-        const date = new Date(row.timestamp * 1000);
-        return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    });
-    const bytesData = data.map(row => parseFloat((row.total_bytes / (1024 * 1024)).toFixed(2))); // MB単位
+    // X軸のラベル表示間隔を時間幅に応じて調整
+    const skipLabels = currentTimeRangeMinutes <= 10 ? 6 : 
+                       currentTimeRangeMinutes === 60 ? 12 : 60;
 
     if (!realtimeBytesChartData) {
         const ctx = canvas.getContext("2d");
@@ -218,10 +311,10 @@ function realtimeBytesChart(data) {
                     data: bytesData,
                     backgroundColor: gradient,
                     borderColor: chartColors.primary,
-                    borderWidth: 2,
+                    borderWidth: 1,
                     borderRadius: {
-                        topLeft: 6,
-                        topRight: 6
+                        topLeft: 4,
+                        topRight: 4
                     },
                     borderSkipped: false,
                 }]
@@ -263,11 +356,18 @@ function realtimeBytesChart(data) {
                                 weight: "600"
                             },
                             color: isDarkTheme() ? "#F1F5F9" : "#374151"
+                        },
+                        ticks: {
+                            ...getCommonChartOptions().scales.x.ticks,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 20
                         }
                     }
                 },
                 animation: {
-                    duration: 0 // リアルタイム更新のためアニメーションを無効化
+                    duration: 0
                 }
             }
         });
@@ -275,27 +375,20 @@ function realtimeBytesChart(data) {
         // 更新処理
         realtimeBytesChartData.data.labels = labels;
         realtimeBytesChartData.data.datasets[0].data = bytesData;
-        realtimeBytesChartData.update('none'); // アニメーションなしで更新
+        realtimeBytesChartData.update('none');
     }
 }
 
 let realtimePacketsChartData = null;
 
 // リアルタイム パケット数グラフ
-function realtimePacketsChart(data) {
+function realtimePacketsChart(labels, packetsData) {
     const canvas = document.getElementById("realtimePackets");
     
     if (!canvas) {
         console.error("not found <canvas id='realtimePackets'> in html");
         return;
     }
-
-    // ラベルとパケット数データ
-    const labels = data.map(row => {
-        const date = new Date(row.timestamp * 1000);
-        return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    });
-    const packetsData = data.map(row => row.total_packets);
 
     if (!realtimePacketsChartData) {
         const ctx = canvas.getContext("2d");
@@ -310,10 +403,10 @@ function realtimePacketsChart(data) {
                     data: packetsData,
                     backgroundColor: gradient,
                     borderColor: chartColors.secondary,
-                    borderWidth: 2,
+                    borderWidth: 1,
                     borderRadius: {
-                        topLeft: 6,
-                        topRight: 6
+                        topLeft: 4,
+                        topRight: 4
                     },
                     borderSkipped: false,
                 }]
@@ -355,11 +448,18 @@ function realtimePacketsChart(data) {
                                 weight: "600"
                             },
                             color: isDarkTheme() ? "#F1F5F9" : "#374151"
+                        },
+                        ticks: {
+                            ...getCommonChartOptions().scales.x.ticks,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 20
                         }
                     }
                 },
                 animation: {
-                    duration: 0 // リアルタイム更新のためアニメーションを無効化
+                    duration: 0
                 }
             }
         });
@@ -367,40 +467,41 @@ function realtimePacketsChart(data) {
         // 更新処理
         realtimePacketsChartData.data.labels = labels;
         realtimePacketsChartData.data.datasets[0].data = packetsData;
-        realtimePacketsChartData.update('none'); // アニメーションなしで更新
+        realtimePacketsChartData.update('none');
     }
 }
 
-// キャプチャ状態をチェックしてステータスインジケーターを更新
+// キャプチャ状態をチェックしてインジケーターを更新
 async function checkCaptureStatus() {
     try {
         const res = await fetch("/api/captureStatus");
         if (!res.ok) return;
         
         const data = await res.json();
-        const indicators = document.querySelectorAll('.status-indicator');
-        const isDark = document.body.classList.contains('dark-theme');
         
-        indicators.forEach(indicator => {
-            const dot = indicator.querySelector('.status-dot');
-            const text = indicator.querySelector('span:last-child');
-            
+        // グラフタイトルのインジケーター
+        const titles = document.querySelectorAll('.chart-title');
+        titles.forEach(title => {
             if (data.active) {
-                if (dot) {
-                    dot.style.background = isDark ? '#00ff9f' : '#22c55e';
-                    dot.style.animation = 'pulse 2s infinite';
-                    dot.style.boxShadow = isDark ? '0 0 10px rgba(0, 255, 159, 0.5)' : '';
-                }
-                if (text) text.textContent = 'Running';
+                title.classList.remove('stopped');
+                title.classList.add('running');
             } else {
-                if (dot) {
-                    dot.style.background = '#ef4444';
-                    dot.style.animation = 'none';
-                    dot.style.boxShadow = isDark ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none';
-                }
-                if (text) text.textContent = 'Stopped';
+                title.classList.remove('running');
+                title.classList.add('stopped');
             }
         });
+        
+        // サイドバーのLinaPタイトルのインジケーター
+        const headerTitle = document.querySelector('.header-title');
+        if (headerTitle) {
+            if (data.active) {
+                headerTitle.classList.remove('stopped');
+                headerTitle.classList.add('running');
+            } else {
+                headerTitle.classList.remove('running');
+                headerTitle.classList.add('stopped');
+            }
+        }
     } catch (err) {
         console.error("Failed to check capture status:", err);
     }
@@ -409,8 +510,34 @@ async function checkCaptureStatus() {
 let timerId;
 let statusTimerId;
 
+// 時間幅変更時にグラフをリセットして再描画
+function onTimeRangeChange(minutes) {
+    currentTimeRangeMinutes = minutes;
+    
+    // グラフをリセット
+    if (realtimeBytesChartData) {
+        realtimeBytesChartData.destroy();
+        realtimeBytesChartData = null;
+    }
+    if (realtimePacketsChartData) {
+        realtimePacketsChartData.destroy();
+        realtimePacketsChartData = null;
+    }
+    
+    // 再読み込み
+    loadRealtimeData();
+}
+
 // ページが読み込まれたらloadRealtimeDataを実行する
 window.addEventListener("DOMContentLoaded", () => {
+    // 時間幅ラジオボタンのイベントリスナー
+    const timeRangeRadios = document.querySelectorAll('input[name="time-range"]');
+    timeRangeRadios.forEach(radio => {
+        radio.addEventListener("change", (e) => {
+            onTimeRangeChange(parseInt(e.target.value));
+        });
+    });
+    
     loadRealtimeData();
     checkCaptureStatus();
     // 5秒ごとに更新
