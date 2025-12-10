@@ -60,7 +60,7 @@ body{
     display: flex;
     padding: 20px 18px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     border-bottom: 1px solid var(--color-border-hr);
     position: relative;
 }
@@ -70,6 +70,7 @@ body{
     font-weight: 700;
     color: #00ff9f;
     margin: 0;
+    margin-right: 40px; /* 開閉ボタンの幅を考慮 */
     transition: 0.4s ease;
     white-space: nowrap;
     text-decoration: none;

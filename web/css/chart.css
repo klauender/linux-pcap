@@ -16,6 +16,13 @@ main {
     background-size: 50px 50px;
 }
 
+main {
+    background: 
+        linear-gradient(90deg, rgba(16, 185, 129, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(16, 185, 129, 0.08) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
 body.dark-theme main {
     background: 
         linear-gradient(90deg, rgba(0, 255, 159, 0.05) 1px, transparent 1px),
@@ -83,14 +90,17 @@ body.dark-theme .chart-title::before {
 .chart-section-bar,
 .chart-section-pie,
 .chart-section-line {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     margin: 0;
     position: relative;
     overflow: hidden;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.08),
+        0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 
@@ -185,8 +195,8 @@ body.dark-theme .status-dot {
     box-shadow: 0 0 10px rgba(0, 255, 159, 0.5);
 }
 
-/* スキャンライン効果（ダークモードのみ） */
-body.dark-theme main::after {
+/* スキャンライン効果 */
+main::after {
     content: '';
     position: fixed;
     top: 0;
@@ -197,9 +207,19 @@ body.dark-theme main::after {
         0deg,
         transparent,
         transparent 2px,
-        rgba(0, 255, 159, 0.01) 2px,
-        rgba(0, 255, 159, 0.01) 4px
+        rgba(16, 185, 129, 0.015) 2px,
+        rgba(16, 185, 129, 0.015) 4px
     );
     pointer-events: none;
     z-index: 9999;
+}
+
+body.dark-theme main::after {
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 159, 0.01) 2px,
+        rgba(0, 255, 159, 0.01) 4px
+    );
 }
