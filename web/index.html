@@ -12,7 +12,7 @@
 <body>
     <aside class="sidebar">
         <header class="sidebar-header">
-            <h1 class="header-title">LinaP</h1>
+            <a href="/index" class="header-title">LinaP</a>
             <button class="sidebar-toggle">
                 <span class="material-symbols-rounded">chevron_left</span>
             </button>
@@ -22,8 +22,14 @@
             <!-- menu list -->
             <ul class="menu-list">
                 <li class="menu-item">
+                    <a href="/packet" class="menu-link">
+                        <span class="material-symbols-rounded">inventory_2</span>
+                        <span class="menu-label">パケット</span>
+                    </a>
+                </li>
+                <li class="menu-item">
                     <a href="/index" class="menu-link active">
-                        <span class="material-symbols-rounded">dashboard</span>
+                        <span class="material-symbols-rounded">swap_horiz</span>
                         <span class="menu-label">フロー</span>
                     </a>
                 </li>
@@ -31,6 +37,18 @@
                     <a href="/realtime" class="menu-link">
                         <span class="material-symbols-rounded">monitoring</span>
                         <span class="menu-label">リアルタイム</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/security" class="menu-link">
+                        <span class="material-symbols-rounded">security</span>
+                        <span class="menu-label">セキュリティ</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/network" class="menu-link">
+                        <span class="material-symbols-rounded">lan</span>
+                        <span class="menu-label">ネットワーク</span>
                     </a>
                 </li>
             </ul>
@@ -64,32 +82,70 @@
     <main>
         <div class="display-flex byBytes">
             <section class="chart-section-bar">
-                <h2 class="chart-title">Top 10 フロー (MB単位)</h2>
+                <h2 class="chart-title">Top 10 フロー / データ量</h2>
                 <div class="chart-wrapper-bar">
                     <canvas id="flowsByBytes"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
                 </div>
             </section>
 
             <section class="chart-section-pie">
-                <h2 class="chart-title">通信方向 (MB単位)</h2>
+                <h2 class="chart-title">通信方向 / MB</h2>
                 <div class="chart-wrapper-pie">
                     <canvas id="bytesByDirection"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
+                </div>
+            </section>
+
+            <section class="chart-section-pie">
+                <h2 class="chart-title">プロトコル / MB</h2>
+                <div class="chart-wrapper-pie">
+                    <canvas id="bytesByProtocol"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
                 </div>
             </section>
         </div>
 
         <div class="display-flex byPackets">
             <section class="chart-section-bar">
-                <h2 class="chart-title">Top 10 フロー (パケット単位)</h2>
+                <h2 class="chart-title">Top 10 フロー / パケット</h2>
                 <div class="chart-wrapper-bar">
                     <canvas id="flowsByPackets"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
                 </div>
             </section>
 
             <section class="chart-section-pie">
-                <h2 class="chart-title">通信方向 (パケット単位)</h2> <!--Traffic Direction (packets)-->
+                <h2 class="chart-title">通信方向 / パケット</h2>
                 <div class="chart-wrapper-pie">
                     <canvas id="packetsByDirection"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
+                </div>
+            </section>
+
+            <section class="chart-section-pie">
+                <h2 class="chart-title">プロトコル / パケット</h2>
+                <div class="chart-wrapper-pie">
+                    <canvas id="packetsByProtocol"></canvas>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>Running</span>
                 </div>
             </section>
         </div>

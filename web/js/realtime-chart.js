@@ -1,21 +1,27 @@
 console.log("realtime-chart.js loaded");
 
-// 共通のグラフカラーパレット
+// サイバーテーマのカラーパレット
 const chartColors = {
-    primary: "#695CFE",
-    primaryLight: "#8B7FFF",
-    secondary: "#10B981",
-    secondaryLight: "#34D399",
-    accent: "#F59E0B",
-    accentLight: "#FBBF24",
-    danger: "#EF4444",
-    dangerLight: "#F87171",
-    info: "#3B82F6",
-    infoLight: "#60A5FA",
-    gradient1: ["#695CFE", "#8B7FFF"],
-    gradient2: ["#10B981", "#34D399"],
-    gradient3: ["#F59E0B", "#FBBF24"],
-    gradient4: ["#EF4444", "#F87171"],
+    // メインカラー（シアン/ネオングリーン系）
+    primary: "#00ff9f",
+    primaryLight: "#00ffcc",
+    // セカンダリ（マゼンタ/ピンク系）
+    secondary: "#ff006e",
+    secondaryLight: "#ff4d94",
+    // アクセント（オレンジ/イエロー系）
+    accent: "#ffbe0b",
+    accentLight: "#ffd60a",
+    // 情報（ブルー/シアン系）
+    info: "#00d4ff",
+    infoLight: "#00e5ff",
+    // 危険（レッド系）
+    danger: "#ff0055",
+    dangerLight: "#ff4477",
+    // グラデーション
+    gradient1: ["#00ff9f", "#00d4aa"],
+    gradient2: ["#ff006e", "#ff4d94"],
+    gradient3: ["#ffbe0b", "#ffd60a"],
+    gradient4: ["#00d4ff", "#00e5ff"],
 };
 
 // グラデーション作成ヘルパー
@@ -365,10 +371,49 @@ function realtimePacketsChart(data) {
     }
 }
 
+// キャプチャ状態をチェックしてステータスインジケーターを更新
+async function checkCaptureStatus() {
+    try {
+        const res = await fetch("/api/captureStatus");
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        const indicators = document.querySelectorAll('.status-indicator');
+        const isDark = document.body.classList.contains('dark-theme');
+        
+        indicators.forEach(indicator => {
+            const dot = indicator.querySelector('.status-dot');
+            const text = indicator.querySelector('span:last-child');
+            
+            if (data.active) {
+                if (dot) {
+                    dot.style.background = isDark ? '#00ff9f' : '#22c55e';
+                    dot.style.animation = 'pulse 2s infinite';
+                    dot.style.boxShadow = isDark ? '0 0 10px rgba(0, 255, 159, 0.5)' : '';
+                }
+                if (text) text.textContent = 'Running';
+            } else {
+                if (dot) {
+                    dot.style.background = '#ef4444';
+                    dot.style.animation = 'none';
+                    dot.style.boxShadow = isDark ? '0 0 10px rgba(239, 68, 68, 0.5)' : 'none';
+                }
+                if (text) text.textContent = 'Stopped';
+            }
+        });
+    } catch (err) {
+        console.error("Failed to check capture status:", err);
+    }
+}
+
 let timerId;
+let statusTimerId;
+
 // ページが読み込まれたらloadRealtimeDataを実行する
 window.addEventListener("DOMContentLoaded", () => {
     loadRealtimeData();
+    checkCaptureStatus();
     // 5秒ごとに更新
     timerId = setInterval(loadRealtimeData, 5000);
+    statusTimerId = setInterval(checkCaptureStatus, 5000);
 });

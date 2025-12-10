@@ -16,9 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
             // roleに応じて表示文字を決める
             let roleLabel = "";
             if (data.role === "admin") {
-                roleLabel = "admin（管理者）";
-            } else if (data.role === "operator") {
-                roleLabel = "operator（閲覧者）";
+                roleLabel = "admin";
+            } else if (data.role === "viewer") {
+                roleLabel = "viewer";
             } else {
                 roleLabel = data.role;
             }

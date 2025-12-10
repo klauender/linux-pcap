@@ -1,9 +1,36 @@
 import sys
+import os
+import signal
 import sqlite3
 import time
 import ipaddress
 import threading
+import atexit
 from scapy.all import PcapReader, IP, TCP, UDP
+
+# PIDファイルのパス
+PID_FILE = "/tmp/flow.pid"
+
+def create_pid_file():
+    """PIDファイルを作成"""
+    with open(PID_FILE, 'w') as f:
+        f.write(str(os.getpid()))
+    print(f"[PID] Created PID file: {PID_FILE} (PID: {os.getpid()})")
+
+def remove_pid_file():
+    """PIDファイルを削除"""
+    try:
+        if os.path.exists(PID_FILE):
+            os.remove(PID_FILE)
+            print(f"[PID] Removed PID file: {PID_FILE}")
+    except Exception as e:
+        print(f"[PID] Failed to remove PID file: {e}")
+
+def signal_handler(signum, frame):
+    """シグナルハンドラ（Ctrl+Cなど）"""
+    print(f"\n[SIGNAL] Received signal {signum}, shutting down...")
+    remove_pid_file()
+    sys.exit(0)
 
 
 #flows = {
@@ -16,10 +43,12 @@ from scapy.all import PcapReader, IP, TCP, UDP
 flows = {}
 
 #各務原wifi
-#lan_net = ipaddress.ip_network("192.168.10.0/24")
+lan_net = ipaddress.ip_network("192.168.10.0/24")
 
 #153教室lan
-lan_net = ipaddress.ip_network("10.128.56.0/22")
+#lan_net = ipaddress.ip_network("10.128.56.0/22")
+
+
 idle_timeout = 3
 
 #DB接続
@@ -47,6 +76,15 @@ realtime_aggregates = {}
 
 
 def main():
+    # PIDファイルを作成
+    create_pid_file()
+    
+    # 終了時にPIDファイルを削除するように登録
+    atexit.register(remove_pid_file)
+    
+    # シグナルハンドラを設定（Ctrl+C対応）
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # 5秒ごとにリアルタイム集計データを保存するスレッドを開始
     save_thread = threading.Thread(target=periodic_save_realtime, daemon=True)

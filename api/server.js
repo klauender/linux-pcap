@@ -113,6 +113,36 @@ app.get("/realtime", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/realtime.html"));
 });
 
+// GET /security : セキュリティページ
+app.get("/security", (req, res) => {
+    // ログイン確認
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/security.html"));
+});
+
+// GET /packet : パケットページ
+app.get("/packet", (req, res) => {
+    // ログイン確認
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/packet.html"));
+});
+
+// GET /network : ネットワークページ
+app.get("/network", (req, res) => {
+    // ログイン確認
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+
+    res.sendFile(path.join(__dirname, "../web/network.html"));
+});
+
 
 // =====================
 //  ここから下は既存API
@@ -261,6 +291,88 @@ app.get("/api/packetsByDirection", (req, res) => {
         
         res.json(rows);
     });
+});
+
+app.get("/api/bytesByProtocol", (req, res) => {
+    
+    const sql = `
+        select protocol,
+        sum(bytes) as totalBytes
+        from flows
+        group by protocol
+        ;
+    `;
+    db.all(sql, [], (err, rows) => {
+
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
+app.get("/api/packetsByProtocol", (req, res) => {
+    
+    const sql = `
+        select protocol,
+        sum(packets) as totalPackets
+        from flows
+        group by protocol
+        ;
+    `;
+    db.all(sql, [], (err, rows) => {
+
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        res.json(rows);
+    });
+});
+
+const fs = require("fs");
+
+const PID_FILE = "/tmp/flow.pid";
+
+// プロセスが実行中かチェック（/procディレクトリを使用）
+function isProcessRunning(pid) {
+    try {
+        // /proc/[pid]ディレクトリが存在すればプロセスは実行中
+        return fs.existsSync(`/proc/${pid}`);
+    } catch (e) {
+        return false;
+    }
+}
+
+// キャプチャ状態確認API
+app.get("/api/captureStatus", (req, res) => {
+    try {
+        // PIDファイルが存在するかチェック
+        if (!fs.existsSync(PID_FILE)) {
+            return res.json({ active: false, pid: null });
+        }
+        
+        // PIDファイルを読み取り
+        const pid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim());
+        
+        if (isNaN(pid)) {
+            return res.json({ active: false, pid: null });
+        }
+        
+        // プロセスが実行中かチェック
+        const isActive = isProcessRunning(pid);
+        
+        res.json({
+            active: isActive,
+            pid: isActive ? pid : null
+        });
+    } catch (err) {
+        console.error("Error checking capture status:", err);
+        res.json({ active: false, pid: null });
+    }
 });
 
 // リアルタイムパケットデータ取得API（最新60件 = 5分間分）

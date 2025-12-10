@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/chart.css">
 </head>
 <body>
     <aside class="sidebar">
         <header class="sidebar-header">
-            <h1 class="header-title">LinaP</h1>
+            <a href="/index" class="header-title">LinaP</a>
             <button class="sidebar-toggle">
                 <span class="material-symbols-rounded">chevron_left</span>
             </button>
@@ -21,8 +22,14 @@
             <!-- menu list -->
             <ul class="menu-list">
                 <li class="menu-item">
+                    <a href="/packet" class="menu-link">
+                        <span class="material-symbols-rounded">inventory_2</span>
+                        <span class="menu-label">パケット</span>
+                    </a>
+                </li>
+                <li class="menu-item">
                     <a href="/index" class="menu-link">
-                        <span class="material-symbols-rounded">dashboard</span>
+                        <span class="material-symbols-rounded">swap_horiz</span>
                         <span class="menu-label">フロー</span>
                     </a>
                 </li>
@@ -30,6 +37,18 @@
                     <a href="/realtime" class="menu-link">
                         <span class="material-symbols-rounded">monitoring</span>
                         <span class="menu-label">リアルタイム</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/security" class="menu-link">
+                        <span class="material-symbols-rounded">security</span>
+                        <span class="menu-label">セキュリティ</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/network" class="menu-link">
+                        <span class="material-symbols-rounded">lan</span>
+                        <span class="menu-label">ネットワーク</span>
                     </a>
                 </li>
             </ul>
@@ -63,6 +82,7 @@
     <main>
         <div class="settings-page">
             <h1 class="settings-page-title">設定</h1>
+            <p class="settings-page-subtitle">アカウントとセキュリティの設定</p>
             <div class="settings-page-content">
                 <button id="change-password-btn" class="settings-menu-item">
                     <span class="material-symbols-rounded">lock</span>
