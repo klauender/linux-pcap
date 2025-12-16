@@ -15,8 +15,8 @@ const chartColors = {
     info: "#00d4ff",
     infoLight: "#00e5ff",
     // 危険（レッド系）
-    danger: "#ff0055",
-    dangerLight: "#ff4477",
+    danger: "#ff006e",
+    dangerLight: "#ff4d94",
     // グラデーション
     gradient1: ["#00ff9f", "#00d4aa"],
     gradient2: ["#ff006e", "#ff4d94"],
@@ -226,7 +226,7 @@ function generateTimeLabels(minutes) {
     return labels;
 }
 
-// データをタイムスタンプでマッピング・集約
+// データをタイムスタンプでマッピング・集約（送信/受信別）
 function mapDataToLabels(data, minutes) {
     const dataPoints = getDataPointCount(minutes);
     const interval = getAggregationInterval(minutes);
@@ -234,8 +234,10 @@ function mapDataToLabels(data, minutes) {
     const baseTime = floorToInterval(new Date(), interval);
     const nowSeconds = Math.floor(baseTime.getTime() / 1000);
     const result = {
-        bytes: new Array(dataPoints).fill(0),
-        packets: new Array(dataPoints).fill(0)
+        inBytes: new Array(dataPoints).fill(0),
+        outBytes: new Array(dataPoints).fill(0),
+        inPackets: new Array(dataPoints).fill(0),
+        outPackets: new Array(dataPoints).fill(0)
     };
     
     // データをタイムスタンプでインデックスに変換（集約）
@@ -243,14 +245,17 @@ function mapDataToLabels(data, minutes) {
         const secondsAgo = nowSeconds - row.timestamp;
         const index = dataPoints - 1 - Math.floor(secondsAgo / interval);
         if (index >= 0 && index < dataPoints) {
-            // 同じインデックスに複数のデータがある場合は加算
-            result.bytes[index] += parseFloat((row.total_bytes / (1024 * 1024)).toFixed(4));
-            result.packets[index] += row.total_packets;
+            // 送信/受信別に集計
+            result.inBytes[index] += parseFloat(((row.in_bytes || 0) / (1024 * 1024)).toFixed(4));
+            result.outBytes[index] += parseFloat(((row.out_bytes || 0) / (1024 * 1024)).toFixed(4));
+            result.inPackets[index] += row.in_packets || 0;
+            result.outPackets[index] += row.out_packets || 0;
         }
     });
     
     // 小数点以下を整理
-    result.bytes = result.bytes.map(v => parseFloat(v.toFixed(2)));
+    result.inBytes = result.inBytes.map(v => parseFloat(v.toFixed(2)));
+    result.outBytes = result.outBytes.map(v => parseFloat(v.toFixed(2)));
     
     return result;
 }
@@ -275,8 +280,8 @@ async function loadRealtimeData() {
         const labels = generateTimeLabels(currentTimeRangeMinutes);
         const mappedData = mapDataToLabels(data, currentTimeRangeMinutes);
         
-        realtimeBytesChart(labels, mappedData.bytes);
-        realtimePacketsChart(labels, mappedData.packets);
+        realtimeBytesChart(labels, mappedData.inBytes, mappedData.outBytes);
+        realtimePacketsChart(labels, mappedData.inPackets, mappedData.outPackets);
         
     } catch (err) {
         console.error(err);
@@ -285,8 +290,8 @@ async function loadRealtimeData() {
 
 let realtimeBytesChartData = null;
 
-// リアルタイム データ量（MB単位）グラフ
-function realtimeBytesChart(labels, bytesData) {
+// リアルタイム データ量（MB単位）グラフ - 送信/受信別
+function realtimeBytesChart(labels, inBytesData, outBytesData) {
     const canvas = document.getElementById("realtimeBytes");
     
     if (!canvas) {
@@ -294,30 +299,41 @@ function realtimeBytesChart(labels, bytesData) {
         return;
     }
 
-    // X軸のラベル表示間隔を時間幅に応じて調整
-    const skipLabels = currentTimeRangeMinutes <= 10 ? 6 : 
-                       currentTimeRangeMinutes === 60 ? 12 : 60;
+    // データの最大値を計算し、その4/3倍をY軸の最大値に設定（最低1MB）
+    const maxDataValue = Math.max(...inBytesData, ...outBytesData);
+    const yAxisMax = Math.max(maxDataValue * (4/3), 1);
 
     if (!realtimeBytesChartData) {
-        const ctx = canvas.getContext("2d");
-        const gradient = createGradient(ctx, chartColors.gradient1[0], chartColors.gradient1[1]);
-
         realtimeBytesChartData = new Chart(canvas, {
-            type: "bar",
+            type: "line",
             data: {
                 labels: labels,
-                datasets: [{
-                    label: "データ量 (MB)",
-                    data: bytesData,
-                    backgroundColor: gradient,
-                    borderColor: chartColors.primary,
-                    borderWidth: 1,
-                    borderRadius: {
-                        topLeft: 4,
-                        topRight: 4
+                datasets: [
+                    {
+                        label: "IN",
+                        data: inBytesData,
+                        borderColor: chartColors.primary,
+                        backgroundColor: "rgba(0, 255, 159, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.primary,
                     },
-                    borderSkipped: false,
-                }]
+                    {
+                        label: "OUT",
+                        data: outBytesData,
+                        borderColor: chartColors.secondary,
+                        backgroundColor: "rgba(255, 0, 110, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.secondary,
+                    }
+                ]
             },
             options: {
                 ...getCommonChartOptions(),
@@ -327,7 +343,7 @@ function realtimeBytesChart(labels, bytesData) {
                         ...getCommonChartOptions().plugins.tooltip,
                         callbacks: {
                             label: function(context) {
-                                return "データ量: " + context.parsed.y.toFixed(2) + " MB";
+                                return context.dataset.label + ": " + context.parsed.y.toFixed(2) + " MB";
                             }
                         }
                     }
@@ -336,6 +352,7 @@ function realtimeBytesChart(labels, bytesData) {
                     y: {
                         ...getCommonChartOptions().scales.y,
                         beginAtZero: true,
+                        max: yAxisMax,
                         title: {
                             display: true,
                             text: "データ量 (MB)",
@@ -374,15 +391,17 @@ function realtimeBytesChart(labels, bytesData) {
     } else {
         // 更新処理
         realtimeBytesChartData.data.labels = labels;
-        realtimeBytesChartData.data.datasets[0].data = bytesData;
+        realtimeBytesChartData.data.datasets[0].data = inBytesData;
+        realtimeBytesChartData.data.datasets[1].data = outBytesData;
+        realtimeBytesChartData.options.scales.y.max = yAxisMax;
         realtimeBytesChartData.update('none');
     }
 }
 
 let realtimePacketsChartData = null;
 
-// リアルタイム パケット数グラフ
-function realtimePacketsChart(labels, packetsData) {
+// リアルタイム パケット数グラフ - 送信/受信別
+function realtimePacketsChart(labels, inPacketsData, outPacketsData) {
     const canvas = document.getElementById("realtimePackets");
     
     if (!canvas) {
@@ -390,26 +409,41 @@ function realtimePacketsChart(labels, packetsData) {
         return;
     }
 
-    if (!realtimePacketsChartData) {
-        const ctx = canvas.getContext("2d");
-        const gradient = createGradient(ctx, chartColors.gradient2[0], chartColors.gradient2[1]);
+    // データの最大値を計算し、その4/3倍をY軸の最大値に設定（最低1000パケット）
+    const maxDataValue = Math.max(...inPacketsData, ...outPacketsData);
+    const yAxisMax = Math.max(maxDataValue * (4/3), 1000);
 
+    if (!realtimePacketsChartData) {
         realtimePacketsChartData = new Chart(canvas, {
-            type: "bar",
+            type: "line",
             data: {
                 labels: labels,
-                datasets: [{
-                    label: "パケット数",
-                    data: packetsData,
-                    backgroundColor: gradient,
-                    borderColor: chartColors.secondary,
-                    borderWidth: 1,
-                    borderRadius: {
-                        topLeft: 4,
-                        topRight: 4
+                datasets: [
+                    {
+                        label: "IN",
+                        data: inPacketsData,
+                        borderColor: chartColors.primary,
+                        backgroundColor: "rgba(0, 255, 159, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.primary,
                     },
-                    borderSkipped: false,
-                }]
+                    {
+                        label: "OUT",
+                        data: outPacketsData,
+                        borderColor: chartColors.secondary,
+                        backgroundColor: "rgba(255, 0, 110, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.secondary,
+                    }
+                ]
             },
             options: {
                 ...getCommonChartOptions(),
@@ -419,7 +453,7 @@ function realtimePacketsChart(labels, packetsData) {
                         ...getCommonChartOptions().plugins.tooltip,
                         callbacks: {
                             label: function(context) {
-                                return "パケット数: " + context.parsed.y.toLocaleString() + " パケット";
+                                return context.dataset.label + ": " + context.parsed.y.toLocaleString() + " パケット";
                             }
                         }
                     }
@@ -428,6 +462,7 @@ function realtimePacketsChart(labels, packetsData) {
                     y: {
                         ...getCommonChartOptions().scales.y,
                         beginAtZero: true,
+                        max: yAxisMax,
                         title: {
                             display: true,
                             text: "パケット数",
@@ -466,7 +501,9 @@ function realtimePacketsChart(labels, packetsData) {
     } else {
         // 更新処理
         realtimePacketsChartData.data.labels = labels;
-        realtimePacketsChartData.data.datasets[0].data = packetsData;
+        realtimePacketsChartData.data.datasets[0].data = inPacketsData;
+        realtimePacketsChartData.data.datasets[1].data = outPacketsData;
+        realtimePacketsChartData.options.scales.y.max = yAxisMax;
         realtimePacketsChartData.update('none');
     }
 }
