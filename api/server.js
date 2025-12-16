@@ -6,6 +6,7 @@ const session = require("express-session"); // ← セッション用（npm inst
 
 //データベースを変数に格納
 const db = new sqlite3.Database(path.join(__dirname, "../flow.db"));
+db.configure("busyTimeout", 5000);  // 5秒待機してからエラーにする
 
 //アプリケーション本体を作る
 const app = express();
@@ -33,7 +34,7 @@ app.use(express.static(path.join(__dirname, "../web")));
 
 // GET /login : ログイン画面を表示
 app.get("/login", (req, res) => {
-    // すでにログイン済みなら /index へ飛ばす（お好みで）
+    // すでにログイン済みなら /index へ飛ばす
     if (req.session.loggedIn) {
         return res.redirect("/index");
     }
@@ -81,16 +82,32 @@ app.get("/logout", (req, res) => {
     });
 });
 
-// GET /index : ログイン必須ページの例
-// ここでは index.html を返す前にセッション確認を入れてる
+// GET / : ルートへのアクセスは /index にリダイレクト
+app.get("/", (req, res) => {
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+    return res.redirect("/index");
+});
+
+// GET /index : ダッシュボードページ
 app.get("/index", (req, res) => {
+    if (!req.session.loggedIn) {
+        return res.redirect("/login");
+    }
+    res.sendFile(path.join(__dirname, "../web/index.html"));
+});
+
+// GET /flows : フローページ
+// ここでは index.html を返す前にセッション確認を入れてる
+app.get("/flows", (req, res) => {
     //req.session.loggedInを見てセッション確認
-    //ない→/login  ある→/index
+    //ない→/login  ある→/flows
     if (!req.session.loggedIn) {
         return res.redirect("/login");
     }
 
-    res.sendFile(path.join(__dirname, "../web/index.html"));
+    res.sendFile(path.join(__dirname, "../web/flows.html"));
 });
 
 // GET /settings : 設定ページ（adminのみ）
@@ -108,16 +125,6 @@ app.get("/settings", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/settings.html"));
 });
 
-// GET /realtime : リアルタイムページ
-app.get("/realtime", (req, res) => {
-    // ログイン確認
-    if (!req.session.loggedIn) {
-        return res.redirect("/login");
-    }
-
-    res.sendFile(path.join(__dirname, "../web/realtime.html"));
-});
-
 // GET /security : セキュリティページ
 app.get("/security", (req, res) => {
     // ログイン確認
@@ -128,14 +135,14 @@ app.get("/security", (req, res) => {
     res.sendFile(path.join(__dirname, "../web/security.html"));
 });
 
-// GET /packet : パケットページ
-app.get("/packet", (req, res) => {
+// GET /packets : パケットページ
+app.get("/packets", (req, res) => {
     // ログイン確認
     if (!req.session.loggedIn) {
         return res.redirect("/login");
     }
 
-    res.sendFile(path.join(__dirname, "../web/packet.html"));
+    res.sendFile(path.join(__dirname, "../web/packets.html"));
 });
 
 // GET /network : ネットワークページ
@@ -225,15 +232,21 @@ app.post("/api/change-password", (req, res) => {
 });
 
 app.get("/api/flowsByBytes", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select src_ip, dst_ip, direction, bytes
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         order by bytes desc
         limit 10
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         //エラーがなければerrにnullが入る
         if (err) {
@@ -246,15 +259,21 @@ app.get("/api/flowsByBytes", (req, res) => {
 });
 
 app.get("/api/flowsByPackets", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select src_ip, dst_ip, direction, packets
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         order by packets desc
         limit 10
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         //エラーがなければerrにnullが入る
         if (err) {
@@ -267,15 +286,21 @@ app.get("/api/flowsByPackets", (req, res) => {
 });
 
 app.get("/api/bytesByDirection", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select direction,
         sum(bytes) as totalBytes
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         group by direction
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         //エラーがなければerrにnullが入る
         if (err) {
@@ -288,15 +313,21 @@ app.get("/api/bytesByDirection", (req, res) => {
 });
 
 app.get("/api/packetsByDirection", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select direction,
         sum(packets) as totalPackets
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         group by direction
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         //エラーがなければerrにnullが入る
         if (err) {
@@ -309,15 +340,21 @@ app.get("/api/packetsByDirection", (req, res) => {
 });
 
 app.get("/api/bytesByProtocol", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select protocol,
         sum(bytes) as totalBytes
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         group by protocol
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         if (err) {
             console.error("DB error:", err);
@@ -329,15 +366,21 @@ app.get("/api/bytesByProtocol", (req, res) => {
 });
 
 app.get("/api/packetsByProtocol", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
     
     const sql = `
         select protocol,
         sum(packets) as totalPackets
         from flows
+        ${minutes > 0 ? 'WHERE end_time >= ?' : ''}
         group by protocol
         ;
     `;
-    db.all(sql, [], (err, rows) => {
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.all(sql, params, (err, rows) => {
 
         if (err) {
             console.error("DB error:", err);
@@ -345,6 +388,146 @@ app.get("/api/packetsByProtocol", (req, res) => {
         }
         
         res.json(rows);
+    });
+});
+
+// TCPフラグ別集計（IN）
+app.get("/api/tcpFlagsIn", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
+    
+    const sql = `
+        SELECT 
+            SUM(ack_count) as ack,
+            SUM(syn_count) as syn,
+            SUM(fin_count) as fin,
+            SUM(rst_count) as rst
+        FROM flows
+        WHERE protocol = 'TCP' AND direction = 'in'
+        ${minutes > 0 ? 'AND end_time >= ?' : ''}
+    `;
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.get(sql, params, (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        const result = [
+            { flag: "ACK", count: row?.ack || 0 },
+            { flag: "SYN", count: row?.syn || 0 },
+            { flag: "FIN", count: row?.fin || 0 },
+            { flag: "RST", count: row?.rst || 0 }
+        ];
+        
+        res.json(result);
+    });
+});
+
+// TCPフラグ別集計（OUT）
+app.get("/api/tcpFlagsOut", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 0;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = minutes > 0 ? now - (minutes * 60) : 0;
+    
+    const sql = `
+        SELECT 
+            SUM(ack_count) as ack,
+            SUM(syn_count) as syn,
+            SUM(fin_count) as fin,
+            SUM(rst_count) as rst
+        FROM flows
+        WHERE protocol = 'TCP' AND direction = 'out'
+        ${minutes > 0 ? 'AND end_time >= ?' : ''}
+    `;
+    const params = minutes > 0 ? [startTime] : [];
+    
+    db.get(sql, params, (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        const result = [
+            { flag: "ACK", count: row?.ack || 0 },
+            { flag: "SYN", count: row?.syn || 0 },
+            { flag: "FIN", count: row?.fin || 0 },
+            { flag: "RST", count: row?.rst || 0 }
+        ];
+        
+        res.json(result);
+    });
+});
+
+// リアルタイムテーブルから通信方向データを取得（時間範囲指定）
+app.get("/api/realtimeDirection", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 10;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = now - (minutes * 60);
+    
+    const sql = `
+        SELECT 
+            SUM(in_bytes) as in_bytes,
+            SUM(out_bytes) as out_bytes,
+            SUM(internal_bytes) as internal_bytes,
+            SUM(external_bytes) as external_bytes,
+            SUM(in_packets) as in_packets,
+            SUM(out_packets) as out_packets,
+            SUM(internal_packets) as internal_packets,
+            SUM(external_packets) as external_packets
+        FROM realtime_packets
+        WHERE timestamp >= ?
+    `;
+    
+    db.get(sql, [startTime], (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        // APIレスポンスを既存の形式に合わせる
+        const result = [
+            { direction: "in", totalBytes: row?.in_bytes || 0, totalPackets: row?.in_packets || 0 },
+            { direction: "out", totalBytes: row?.out_bytes || 0, totalPackets: row?.out_packets || 0 },
+            { direction: "internal", totalBytes: row?.internal_bytes || 0, totalPackets: row?.internal_packets || 0 },
+            { direction: "external", totalBytes: row?.external_bytes || 0, totalPackets: row?.external_packets || 0 }
+        ];
+        
+        res.json(result);
+    });
+});
+
+// リアルタイムテーブルからプロトコルデータを取得（時間範囲指定）
+app.get("/api/realtimeProtocol", (req, res) => {
+    const minutes = parseInt(req.query.minutes) || 10;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = now - (minutes * 60);
+    
+    const sql = `
+        SELECT 
+            SUM(tcp_bytes) as tcp_bytes,
+            SUM(udp_bytes) as udp_bytes,
+            SUM(tcp_packets) as tcp_packets,
+            SUM(udp_packets) as udp_packets
+        FROM realtime_packets
+        WHERE timestamp >= ?
+    `;
+    
+    db.get(sql, [startTime], (err, row) => {
+        if (err) {
+            console.error("DB error:", err);
+            return res.status(500).json({error: "database error"});
+        }
+        
+        // APIレスポンスを既存の形式に合わせる
+        const result = [
+            { protocol: "TCP", totalBytes: row?.tcp_bytes || 0, totalPackets: row?.tcp_packets || 0 },
+            { protocol: "UDP", totalBytes: row?.udp_bytes || 0, totalPackets: row?.udp_packets || 0 }
+        ];
+        
+        res.json(result);
     });
 });
 
@@ -398,7 +581,11 @@ app.get("/api/realtimePackets", (req, res) => {
         SELECT 
             timestamp,
             total_bytes,
-            total_packets
+            total_packets,
+            COALESCE(in_bytes, 0) as in_bytes,
+            COALESCE(out_bytes, 0) as out_bytes,
+            COALESCE(in_packets, 0) as in_packets,
+            COALESCE(out_packets, 0) as out_packets
         FROM realtime_packets
         ORDER BY timestamp DESC
         LIMIT ?

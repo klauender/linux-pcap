@@ -1,43 +1,25 @@
-console.log("script.js loaded");
+console.log("chart.js loaded");
 
 // サイバーテーマのカラーパレット
 const chartColors = {
-    // メインカラー（シアン/ネオングリーン系）
     primary: "#00ff9f",
     primaryLight: "#00ffcc",
-    // セカンダリ（マゼンタ/ピンク系）
     secondary: "#ff006e",
     secondaryLight: "#ff4d94",
-    // アクセント（オレンジ/イエロー系）
     accent: "#ffbe0b",
     accentLight: "#ffd60a",
-    // 情報（ブルー/シアン系）
     info: "#00d4ff",
     infoLight: "#00e5ff",
-    // 危険（レッド系）
-    danger: "#ff0055",
-    dangerLight: "#ff4477",
-    // グラデーション
-    gradient1: ["#00ff9f", "#00d4aa"],
-    gradient2: ["#ff006e", "#ff4d94"],
-    gradient3: ["#ffbe0b", "#ffd60a"],
-    gradient4: ["#00d4ff", "#00e5ff"],
+    danger: "#ff006e",
+    dangerLight: "#ff4d94",
 };
-
-// グラデーション作成ヘルパー
-function createGradient(ctx, color1, color2) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, color1);
-    gradient.addColorStop(1, color2);
-    return gradient;
-}
 
 // ダークテーマかどうかを判定
 function isDarkTheme() {
     return document.body.classList.contains("dark-theme");
 }
 
-// 共通のグラフオプション（動的に生成）
+// 共通のグラフオプション
 function getCommonChartOptions() {
     const isDark = isDarkTheme();
     const textColor = isDark ? "#F1F5F9" : "#374151";
@@ -55,23 +37,15 @@ function getCommonChartOptions() {
                 labels: {
                     usePointStyle: true,
                     padding: 15,
-                    font: {
-                        size: 12,
-                        weight: "500"
-                    },
+                    font: { size: 12, weight: "500" },
                     color: textColor
                 }
             },
             tooltip: {
                 backgroundColor: tooltipBg,
                 padding: 12,
-                titleFont: {
-                    size: 14,
-                    weight: "600"
-                },
-                bodyFont: {
-                    size: 13
-                },
+                titleFont: { size: 14, weight: "600" },
+                bodyFont: { size: 13 },
                 borderColor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.1)",
                 borderWidth: 1,
                 cornerRadius: 8,
@@ -82,164 +56,59 @@ function getCommonChartOptions() {
         },
         scales: {
             x: {
-                grid: {
-                    display: true,
-                    color: gridColor,
-                    drawBorder: true,
-                    borderColor: borderColor
-                },
-                ticks: {
-                    font: {
-                        size: 11
-                    },
-                    color: textColor
-                }
+                grid: { display: true, color: gridColor, drawBorder: true, borderColor: borderColor },
+                ticks: { font: { size: 11 }, color: textColor }
             },
             y: {
-                grid: {
-                    display: true,
-                    color: gridColor,
-                    drawBorder: true,
-                    borderColor: borderColor
-                },
-                ticks: {
-                    font: {
-                        size: 11
-                    },
-                    color: textColor
-                }
+                grid: { display: true, color: gridColor, drawBorder: true, borderColor: borderColor },
+                ticks: { font: { size: 11 }, color: textColor }
             }
         }
     };
 }
 
-// テーマ変更時にグラフを更新（グローバルスコープに公開）
-window.updateChartsTheme = function updateChartsTheme() {
+// 現在の単位（localStorageから復元）
+let currentUnit = localStorage.getItem("displayUnit") || "mb";
+
+// 現在の時間範囲（分）
+let flowsTimeRangeMinutes = parseInt(localStorage.getItem("timeRange")) || 10;
+
+// キャッシュされたデータ
+let cachedFlowsByBytesData = null;
+let cachedFlowsByPacketsData = null;
+
+// チャートインスタンス
+let flowsChartData = null;
+
+// テーマ変更時にグラフを更新
+window.updateChartsTheme = function() {
     const commonOptions = getCommonChartOptions();
     const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
     
-    // flowsByBytesChartData
-    if (flowsByBytesChartData) {
-        // プラグインの更新
-        if (flowsByBytesChartData.options.plugins) {
-            if (flowsByBytesChartData.options.plugins.legend) {
-                flowsByBytesChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (flowsByBytesChartData.options.plugins.tooltip) {
-                flowsByBytesChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                flowsByBytesChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
+    if (flowsChartData) {
+        if (flowsChartData.options.plugins) {
+            if (flowsChartData.options.plugins.legend) flowsChartData.options.plugins.legend.labels.color = textColor;
+            if (flowsChartData.options.plugins.tooltip) {
+                flowsChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
+                flowsChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
             }
         }
-        // スケールの更新
-        if (flowsByBytesChartData.options.scales) {
-            if (flowsByBytesChartData.options.scales.x) {
-                flowsByBytesChartData.options.scales.x.grid.color = commonOptions.scales.x.grid.color;
-                flowsByBytesChartData.options.scales.x.grid.borderColor = commonOptions.scales.x.grid.borderColor;
-                flowsByBytesChartData.options.scales.x.ticks.color = textColor;
-                if (flowsByBytesChartData.options.scales.x.title) {
-                    flowsByBytesChartData.options.scales.x.title.color = textColor;
-                }
+        if (flowsChartData.options.scales) {
+            if (flowsChartData.options.scales.x) {
+                flowsChartData.options.scales.x.grid.color = commonOptions.scales.x.grid.color;
+                flowsChartData.options.scales.x.grid.borderColor = commonOptions.scales.x.grid.borderColor;
+                flowsChartData.options.scales.x.ticks.color = textColor;
+                if (flowsChartData.options.scales.x.title) flowsChartData.options.scales.x.title.color = textColor;
             }
-            if (flowsByBytesChartData.options.scales.y) {
-                flowsByBytesChartData.options.scales.y.grid.color = commonOptions.scales.y.grid.color;
-                flowsByBytesChartData.options.scales.y.grid.borderColor = commonOptions.scales.y.grid.borderColor;
-                flowsByBytesChartData.options.scales.y.ticks.color = textColor;
-                if (flowsByBytesChartData.options.scales.y.title) {
-                    flowsByBytesChartData.options.scales.y.title.color = textColor;
-                }
+            if (flowsChartData.options.scales.y) {
+                flowsChartData.options.scales.y.grid.color = commonOptions.scales.y.grid.color;
+                flowsChartData.options.scales.y.grid.borderColor = commonOptions.scales.y.grid.borderColor;
+                flowsChartData.options.scales.y.ticks.color = textColor;
+                if (flowsChartData.options.scales.y.title) flowsChartData.options.scales.y.title.color = textColor;
             }
         }
-        flowsByBytesChartData.update();
+        flowsChartData.update();
     }
-    
-    // flowsByPacketsChartData
-    if (flowsByPacketsChartData) {
-        if (flowsByPacketsChartData.options.plugins) {
-            if (flowsByPacketsChartData.options.plugins.legend) {
-                flowsByPacketsChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (flowsByPacketsChartData.options.plugins.tooltip) {
-                flowsByPacketsChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                flowsByPacketsChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        if (flowsByPacketsChartData.options.scales) {
-            if (flowsByPacketsChartData.options.scales.x) {
-                flowsByPacketsChartData.options.scales.x.grid.color = commonOptions.scales.x.grid.color;
-                flowsByPacketsChartData.options.scales.x.grid.borderColor = commonOptions.scales.x.grid.borderColor;
-                flowsByPacketsChartData.options.scales.x.ticks.color = textColor;
-                if (flowsByPacketsChartData.options.scales.x.title) {
-                    flowsByPacketsChartData.options.scales.x.title.color = textColor;
-                }
-            }
-            if (flowsByPacketsChartData.options.scales.y) {
-                flowsByPacketsChartData.options.scales.y.grid.color = commonOptions.scales.y.grid.color;
-                flowsByPacketsChartData.options.scales.y.grid.borderColor = commonOptions.scales.y.grid.borderColor;
-                flowsByPacketsChartData.options.scales.y.ticks.color = textColor;
-                if (flowsByPacketsChartData.options.scales.y.title) {
-                    flowsByPacketsChartData.options.scales.y.title.color = textColor;
-                }
-            }
-        }
-        flowsByPacketsChartData.update();
-    }
-    
-    // bytesByDirectionChartData
-    if (bytesByDirectionChartData) {
-        if (bytesByDirectionChartData.options.plugins) {
-            if (bytesByDirectionChartData.options.plugins.legend) {
-                bytesByDirectionChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (bytesByDirectionChartData.options.plugins.tooltip) {
-                bytesByDirectionChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                bytesByDirectionChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        bytesByDirectionChartData.update();
-    }
-    
-    // packetsByDirectionChartData
-    if (packetsByDirectionChartData) {
-        if (packetsByDirectionChartData.options.plugins) {
-            if (packetsByDirectionChartData.options.plugins.legend) {
-                packetsByDirectionChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (packetsByDirectionChartData.options.plugins.tooltip) {
-                packetsByDirectionChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                packetsByDirectionChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        packetsByDirectionChartData.update();
-    }
-    
-    // bytesByProtocolChartData
-    if (bytesByProtocolChartData) {
-        if (bytesByProtocolChartData.options.plugins) {
-            if (bytesByProtocolChartData.options.plugins.legend) {
-                bytesByProtocolChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (bytesByProtocolChartData.options.plugins.tooltip) {
-                bytesByProtocolChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                bytesByProtocolChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        bytesByProtocolChartData.update();
-    }
-    
-    // packetsByProtocolChartData
-    if (packetsByProtocolChartData) {
-        if (packetsByProtocolChartData.options.plugins) {
-            if (packetsByProtocolChartData.options.plugins.legend) {
-                packetsByProtocolChartData.options.plugins.legend.labels.color = textColor;
-            }
-            if (packetsByProtocolChartData.options.plugins.tooltip) {
-                packetsByProtocolChartData.options.plugins.tooltip.backgroundColor = commonOptions.plugins.tooltip.backgroundColor;
-                packetsByProtocolChartData.options.plugins.tooltip.borderColor = commonOptions.plugins.tooltip.borderColor;
-            }
-        }
-        packetsByProtocolChartData.update();
-    }
-    
 }
 
 // テーマ変更イベントをリッスン
@@ -249,111 +118,77 @@ document.addEventListener("DOMContentLoaded", () => {
             window.updateChartsTheme();
         }
     });
-    observer.observe(document.body, {
-        attributes: true,
-        attributeFilter: ["class"]
-    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
 });
 
-//これでawaitが使えるようになる
-//データを取りに行って、描画用の関数に渡す係
+// データを取得
 async function loadFlows() {
-
     try {
-        //resが帰ってくるまで待つ
-        const [flowsByBytesRes, flowsByPacketsRes, bytesByDirectionRes, packetsByDirectionRes, bytesByProtocolRes, packetsByProtocolRes] = await Promise.all([
-            fetch("/api/flowsByBytes"),
-            fetch("/api/flowsByPackets"),
-            fetch("/api/bytesByDirection"),
-            fetch("/api/packetsByDirection"),
-            fetch("/api/bytesByProtocol"),
-            fetch("/api/packetsByProtocol"),
+        const [flowsByBytesRes, flowsByPacketsRes] = await Promise.all([
+            fetch(`/api/flowsByBytes?minutes=${flowsTimeRangeMinutes}`),
+            fetch(`/api/flowsByPackets?minutes=${flowsTimeRangeMinutes}`),
         ]);
 
-        
-        //.okで成功かどうかチェック。ステータスコードが404や500などの場合false
-        if(!flowsByBytesRes.ok) {  
-            //throwはエラーを投げる=中断する命令 try→catchを探す
-            throw new Error("HTTP error" + flowsByBytesRes.status);
-        }
-        if(!flowsByPacketsRes.ok) {  
-            throw new Error("HTTP error" + flowsByPacketsRes.status);
-        }
-        if(!bytesByDirectionRes.ok) {  
-            throw new Error("HTTP error" + bytesByDirectionRes.status);
-        }
-        if(!packetsByDirectionRes.ok) {  
-            throw new Error("HTTP error" + packetsByDirectionRes.status);
-        }
-        if(!bytesByProtocolRes.ok) {  
-            throw new Error("HTTP error" + bytesByProtocolRes.status);
-        }
-        if(!packetsByProtocolRes.ok) {  
-            throw new Error("HTTP error" + packetsByProtocolRes.status);
+        if (!flowsByBytesRes.ok || !flowsByPacketsRes.ok) {
+            throw new Error("HTTP error");
         }
 
-        //json形式→jsオブジェクト形式に解凍 jsonパース
-        const [flowsByBytesData, flowsByPacketsData, bytesByDirectionData, packetsByDirectionData, bytesByProtocolData, packetsByProtocolData] = await Promise.all([
+        [cachedFlowsByBytesData, cachedFlowsByPacketsData] = await Promise.all([
             flowsByBytesRes.json(),
             flowsByPacketsRes.json(),
-            bytesByDirectionRes.json(),
-            packetsByDirectionRes.json(),
-            bytesByProtocolRes.json(),
-            packetsByProtocolRes.json()
         ]);
 
-        //グラフ描画関数
-        flowsByBytesChart(flowsByBytesData);
-        flowsByPacketsChart(flowsByPacketsData);
-        bytesByDirectionChart(bytesByDirectionData);
-        packetsByDirectionChart(packetsByDirectionData);
-        bytesByProtocolChart(bytesByProtocolData);
-        packetsByProtocolChart(packetsByProtocolData);
-        
-        // サマリーカードを更新
-        updateSummaryCards(flowsByBytesData, bytesByDirectionData, packetsByDirectionData);
+        updateFlowsChart();
 
     } catch (err) {
         console.error(err);
     }
 }
 
+// Top 10 フローチャートを更新
+function updateFlowsChart() {
+    const canvas = document.getElementById("flowsChart");
+    if (!canvas) return;
 
-let flowsByBytesChartData = null;
+    const data = currentUnit === "mb" ? cachedFlowsByBytesData : cachedFlowsByPacketsData;
+    if (!data) return;
 
-//chart.jsに関数と座標を渡して描画してもらう
-//canvas...どこに描くか
-//labels/values...何を書くのか
-function flowsByBytesChart(data) {
+    const labels = data.map(row => {
+        if (row.direction === 'in') return row.src_ip;
+        if (row.direction === 'out') return row.dst_ip;
+        return `${row.src_ip} → ${row.dst_ip}`;
+    });
+    
+    const values = currentUnit === "mb" 
+        ? data.map(row => row.bytes / 1024 / 1024)
+        : data.map(row => row.packets);
+    
+    const barColors = data.map(row => {
+        if (row.direction === 'in') return chartColors.primary;
+        if (row.direction === 'out') return chartColors.secondary;
+        return chartColors.info;
+    });
+    const borderColors = data.map(row => {
+        if (row.direction === 'in') return chartColors.primaryLight;
+        if (row.direction === 'out') return chartColors.secondaryLight;
+        return chartColors.infoLight;
+    });
 
-    //canvasタグの位置情報を取ってくる
-    const canvas = document.getElementById("flowsByBytes");   //場所指定
+    const xAxisLabel = currentUnit === "mb" ? "データ量 (MB)" : "パケット数";
+    const tooltipCallback = currentUnit === "mb"
+        ? (context) => "データ量: " + context.parsed.x.toFixed(2) + " MB"
+        : (context) => "パケット数: " + context.parsed.x.toLocaleString() + " pkt";
 
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    //ラベルと値を設定
-    //.mapでdata配列を新しい配列にする
-    //例) [1,2,3].map(x => x * 2);    →   [2,4,6]
-    const labels = data.map(row => `${row.src_ip} → ${row.dst_ip} (${row.direction})`);
-    const values = data.map(row => row.bytes / 1024 /1024);
-
-    // flowsByBytesChartがない場合新しく作る
-    if (!flowsByBytesChartData) {
-        const ctx = canvas.getContext("2d");
-        const gradient = createGradient(ctx, chartColors.gradient1[0], chartColors.gradient1[1]);
-
-        flowsByBytesChartData = new Chart(canvas, {
+    if (!flowsChartData) {
+        flowsChartData = new Chart(canvas, {
             type: "bar",
             data: {
                 labels: labels,
                 datasets: [{
-                    label: "データ量 (MB)",
+                    label: xAxisLabel,
                     data: values,
-                    backgroundColor: gradient,
-                    borderColor: chartColors.primary,
+                    backgroundColor: barColors,
+                    borderColor: borderColors,
                     borderWidth: 2,
                     borderRadius: 6,
                     borderSkipped: false,
@@ -364,670 +199,80 @@ function flowsByBytesChart(data) {
                 indexAxis: "y",
                 plugins: {
                     ...getCommonChartOptions().plugins,
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                return "データ量: " + context.parsed.x.toFixed(2) + " MB";
+                    legend: {
+                        display: true,
+                        position: "top",
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { size: 12, weight: "500" },
+                            color: isDarkTheme() ? "#F1F5F9" : "#374151",
+                            generateLabels: function(chart) {
+                                const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
+                                return [
+                                    { text: "IN", fillStyle: chartColors.primary, strokeStyle: chartColors.primaryLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor },
+                                    { text: "OUT", fillStyle: chartColors.secondary, strokeStyle: chartColors.secondaryLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor }
+                                ];
                             }
                         }
+                    },
+                    tooltip: {
+                        ...getCommonChartOptions().plugins.tooltip,
+                        callbacks: { label: tooltipCallback }
                     }
                 },
                 scales: {
                     x: {
                         ...getCommonChartOptions().scales.x,
-                        title: {
-                            display: true,
-                            text: "データ量 (MB)",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        },
+                        title: { display: true, text: xAxisLabel, font: { size: 13, weight: "600" }, color: isDarkTheme() ? "#F1F5F9" : "#374151" },
                         beginAtZero: true
                     },
                     y: {
                         ...getCommonChartOptions().scales.y,
-                        title: {
-                            display: true,
-                            text: "フロー",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        }
+                        title: { display: true, text: "フロー", font: { size: 13, weight: "600" }, color: isDarkTheme() ? "#F1F5F9" : "#374151" }
                     }
                 },
-                animation: {
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
+                animation: { duration: 300 }
             }
         });
-
     } else {
-        //すでにchartがある場合は中身入れ替えて更新
-        flowsByBytesChartData.data.labels = labels;
-        flowsByBytesChartData.data.datasets[0].data = values;
-        flowsByBytesChartData.update();
+        flowsChartData.data.labels = labels;
+        flowsChartData.data.datasets[0].data = values;
+        flowsChartData.data.datasets[0].label = xAxisLabel;
+        flowsChartData.data.datasets[0].backgroundColor = barColors;
+        flowsChartData.data.datasets[0].borderColor = borderColors;
+        flowsChartData.options.scales.x.title.text = xAxisLabel;
+        flowsChartData.options.plugins.tooltip.callbacks.label = tooltipCallback;
+        flowsChartData.update();
     }
 }
 
-
-let flowsByPacketsChartData = null;
-
-function flowsByPacketsChart(data) {
-
-    const canvas = document.getElementById("flowsByPackets");
-
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    const labels = data.map(row => `${row.src_ip} → ${row.dst_ip} (${row.direction})`);
-    const values = data.map(row => row.packets);
-
-    if (!flowsByPacketsChartData) {
-        const ctx = canvas.getContext("2d");
-        const gradient = createGradient(ctx, chartColors.gradient2[0], chartColors.gradient2[1]);
-
-        flowsByPacketsChartData = new Chart(canvas, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "パケット数",
-                    data: values,
-                    backgroundColor: gradient,
-                    borderColor: chartColors.secondary,
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                indexAxis: "y",
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                return "パケット数: " + context.parsed.x.toLocaleString() + " パケット";
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ...getCommonChartOptions().scales.x,
-                        title: {
-                            display: true,
-                            text: "パケット数",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        },
-                        beginAtZero: true
-                    },
-                    y: {
-                        ...getCommonChartOptions().scales.y,
-                        title: {
-                            display: true,
-                            text: "フロー",
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            color: isDarkTheme() ? "#F1F5F9" : "#374151"
-                        }
-                    }
-                },
-                animation: {
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
-            }
-        });
-
-    } else {
-        //すでにchartがある場合は中身入れ替えて更新
-        flowsByPacketsChartData.data.labels = labels;
-        flowsByPacketsChartData.data.datasets[0].data = values;
-        flowsByPacketsChartData.update();
+// グラフタイトルを更新
+function updateFlowsChartTitles() {
+    const unitLabel = currentUnit === "mb" ? "/Bytes" : "/Packets";
+    
+    const top10Title = document.getElementById("top10-title");
+    if (top10Title) {
+        const baseText = top10Title.getAttribute("data-i18n-base") || top10Title.textContent.replace(/\s*\/.*$/, '');
+        top10Title.setAttribute("data-i18n-base", baseText);
+        top10Title.textContent = baseText + " " + unitLabel;
     }
 }
 
-let bytesByDirectionChartData = null;
-
-function bytesByDirectionChart(data) {
-
-    const canvas = document.getElementById("bytesByDirection");
-
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    const labelMap = {
-        in: "IN",
-        out: "OUT",
-        external: "External",
-        internal: "Internal"
-    }
-
-    // 色をdirection別に固定（external=オレンジ, in=緑, out=赤, internal=水色）
-    const colorMap = {
-        external: "#ffbe0b",
-        in: "#00ff9f",
-        out: "#ff006e",
-        internal: "#00d4ff"
-    }
-
-    const labels = data.map(row => labelMap[row.direction]);
-    const values = data.map(row => row.totalBytes / 1024 /1024);
-    const colors = data.map(row => colorMap[row.direction]);
-
-    if (!bytesByDirectionChartData) {
-        bytesByDirectionChartData = new Chart(canvas, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "データ量 (MB)",
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 15,
-                    hoverBorderWidth: 2,
-                    hoverBorderColor: "#ffffff"
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                scales: {},
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    legend: {
-                        ...getCommonChartOptions().plugins.legend,
-                        position: "bottom",
-                    },
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || "";
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value.toFixed(2)} MB (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
-            },
-            plugins: [{
-                id: 'centerText',
-                beforeDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    // 中央を塗りつぶす
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                },
-                afterDatasetsDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    // 中央を塗りつぶす
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                    
-                    // データから総MB量を計算
-                    const data = chart.data.datasets[0].data;
-                    const totalMB = data.reduce((a, b) => a + b, 0);
-                    
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
-                    ctx.fillStyle = textColor;
-                    
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText('総MB', centerX, centerY - 15);
-                    
-                    ctx.font = 'bold 24px Arial';
-                    ctx.fillText(totalMB.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','), centerX, centerY + 15);
-                    
-                    ctx.restore();
-                }
-            }]
-        });
-
-    } else {
-        //更新処理
-        bytesByDirectionChartData.data.labels = labels;
-        bytesByDirectionChartData.data.datasets[0].data = values;
-        bytesByDirectionChartData.data.datasets[0].backgroundColor = colors;
-        bytesByDirectionChartData.update();
-    }
+// 単位変更時（グローバルに公開）
+window.onUnitChange = function(unit) {
+    currentUnit = unit;
+    updateFlowsChart();
+    updateFlowsChartTitles();
 }
 
-let packetsByDirectionChartData = null;
-
-function packetsByDirectionChart(data) {
-
-    const canvas = document.getElementById("packetsByDirection");
-
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    const labelMap = {
-        in: "IN",
-        out: "OUT",
-        external: "External",
-        internal: "Internal"
-    }
-
-    // 色をdirection別に固定（external=オレンジ, in=緑, out=赤, internal=水色）
-    const colorMap = {
-        external: "#ffd60a",
-        in: "#00ffcc",
-        out: "#ff4d94",
-        internal: "#00e5ff"
-    }
-
-    const labels = data.map(row => labelMap[row.direction]);
-    const values = data.map(row => row.totalPackets);
-    const colors = data.map(row => colorMap[row.direction]);
-
-    if (!packetsByDirectionChartData) {
-        packetsByDirectionChartData = new Chart(canvas, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "パケット数",
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 15,
-                    hoverBorderWidth: 2,
-                    hoverBorderColor: "#ffffff"
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                scales: {},
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    legend: {
-                        ...getCommonChartOptions().plugins.legend,
-                        position: "bottom",
-                    },
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || "";
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value.toLocaleString()} パケット (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
-            },
-            plugins: [{
-                id: 'centerText',
-                beforeDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    // 中央を塗りつぶす
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                },
-                afterDatasetsDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    // 中央を塗りつぶす
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                    
-                    // データから総パケット量を計算
-                    const data = chart.data.datasets[0].data;
-                    const totalPackets = data.reduce((a, b) => a + b, 0);
-                    
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
-                    ctx.fillStyle = textColor;
-                    
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText('総パケット', centerX, centerY - 15);
-                    
-                    ctx.font = 'bold 24px Arial';
-                    ctx.fillText(totalPackets.toLocaleString(), centerX, centerY + 15);
-                    
-                    ctx.restore();
-                }
-            }]
-        });
-
-    } else {
-        //更新処理
-        packetsByDirectionChartData.data.labels = labels;
-        packetsByDirectionChartData.data.datasets[0].data = values;
-        packetsByDirectionChartData.data.datasets[0].backgroundColor = colors;
-        packetsByDirectionChartData.update();
-    }
+// 時間範囲変更時（グローバルに公開）
+window.onTimeRangeChange = function(minutes) {
+    flowsTimeRangeMinutes = minutes;
+    loadFlows();
 }
 
-let bytesByProtocolChartData = null;
-
-function bytesByProtocolChart(data) {
-
-    const canvas = document.getElementById("bytesByProtocol");
-
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    const labels = data.map(row => row.protocol);
-    const values = data.map(row => row.totalBytes / 1024 / 1024);
-
-    // プロトコル用の色（TCP=青系、UDP=オレンジ系）
-    const protocolColors = {
-        TCP: "#3b82f6",
-        UDP: "#f59e0b"
-    };
-    const colors = labels.map(label => protocolColors[label] || "#8b5cf6");
-
-    if (!bytesByProtocolChartData) {
-        bytesByProtocolChartData = new Chart(canvas, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "データ量 (MB)",
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 15,
-                    hoverBorderWidth: 2,
-                    hoverBorderColor: "#ffffff"
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                scales: {},
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    legend: {
-                        ...getCommonChartOptions().plugins.legend,
-                        position: "bottom",
-                    },
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || "";
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value.toFixed(2)} MB (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
-            },
-            plugins: [{
-                id: 'centerTextProtocolBytes',
-                beforeDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                },
-                afterDatasetsDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                    
-                    const data = chart.data.datasets[0].data;
-                    const totalMB = data.reduce((a, b) => a + b, 0);
-                    
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
-                    ctx.fillStyle = textColor;
-                    
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText('総MB', centerX, centerY - 15);
-                    
-                    ctx.font = 'bold 24px Arial';
-                    ctx.fillText(totalMB.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','), centerX, centerY + 15);
-                    
-                    ctx.restore();
-                }
-            }]
-        });
-
-    } else {
-        bytesByProtocolChartData.data.labels = labels;
-        bytesByProtocolChartData.data.datasets[0].data = values;
-        bytesByProtocolChartData.data.datasets[0].backgroundColor = colors;
-        bytesByProtocolChartData.update();
-    }
-}
-
-let packetsByProtocolChartData = null;
-
-function packetsByProtocolChart(data) {
-
-    const canvas = document.getElementById("packetsByProtocol");
-
-    if(!canvas){
-        console.error("not found <canvas> in html")
-        return;
-    }
-
-    const labels = data.map(row => row.protocol);
-    const values = data.map(row => row.totalPackets);
-
-    // プロトコル用の色（TCP=青系、UDP=オレンジ系）
-    const protocolColors = {
-        TCP: "#60a5fa",
-        UDP: "#fbbf24"
-    };
-    const colors = labels.map(label => protocolColors[label] || "#a78bfa");
-
-    if (!packetsByProtocolChartData) {
-        packetsByProtocolChartData = new Chart(canvas, {
-            type: "doughnut",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "パケット数",
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 0,
-                    hoverOffset: 15,
-                    hoverBorderWidth: 2,
-                    hoverBorderColor: "#ffffff"
-                }]
-            },
-            options: {
-                ...getCommonChartOptions(),
-                scales: {},
-                plugins: {
-                    ...getCommonChartOptions().plugins,
-                    legend: {
-                        ...getCommonChartOptions().plugins.legend,
-                        position: "bottom",
-                    },
-                    tooltip: {
-                        ...getCommonChartOptions().plugins.tooltip,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || "";
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value.toLocaleString()} パケット (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1000,
-                    easing: "easeOutQuart"
-                }
-            },
-            plugins: [{
-                id: 'centerTextProtocolPackets',
-                beforeDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                },
-                afterDatasetsDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const meta = chart.getDatasetMeta(0);
-                    const innerRadius = meta.controller.innerRadius;
-                    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-                    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkTheme() ? "#1f2937" : "#ffffff";
-                    ctx.fill();
-                    ctx.restore();
-                    
-                    const data = chart.data.datasets[0].data;
-                    const totalPackets = data.reduce((a, b) => a + b, 0);
-                    
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
-                    ctx.fillStyle = textColor;
-                    
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText('総パケット', centerX, centerY - 15);
-                    
-                    ctx.font = 'bold 24px Arial';
-                    ctx.fillText(totalPackets.toLocaleString(), centerX, centerY + 15);
-                    
-                    ctx.restore();
-                }
-            }]
-        });
-
-    } else {
-        packetsByProtocolChartData.data.labels = labels;
-        packetsByProtocolChartData.data.datasets[0].data = values;
-        packetsByProtocolChartData.data.datasets[0].backgroundColor = colors;
-        packetsByProtocolChartData.update();
-    }
-}
-
-
-// キャプチャ状態をチェックしてインジケーターを更新
+// キャプチャ状態チェック
 async function checkCaptureStatus() {
     try {
         const res = await fetch("/api/captureStatus");
@@ -1035,28 +280,15 @@ async function checkCaptureStatus() {
         
         const data = await res.json();
         
-        // グラフタイトルのインジケーター
-        const titles = document.querySelectorAll('.chart-title');
-        titles.forEach(title => {
-            if (data.active) {
-                title.classList.remove('stopped');
-                title.classList.add('running');
-            } else {
-                title.classList.remove('running');
-                title.classList.add('stopped');
-            }
+        document.querySelectorAll('.chart-title').forEach(title => {
+            title.classList.toggle('running', data.active);
+            title.classList.toggle('stopped', !data.active);
         });
         
-        // サイドバーのLinaPタイトルのインジケーター
         const headerTitle = document.querySelector('.header-title');
         if (headerTitle) {
-            if (data.active) {
-                headerTitle.classList.remove('stopped');
-                headerTitle.classList.add('running');
-            } else {
-                headerTitle.classList.remove('running');
-                headerTitle.classList.add('stopped');
-            }
+            headerTitle.classList.toggle('running', data.active);
+            headerTitle.classList.toggle('stopped', !data.active);
         }
     } catch (err) {
         console.error("Failed to check capture status:", err);
@@ -1066,14 +298,16 @@ async function checkCaptureStatus() {
 let timerId;
 let statusTimerId;
 
-//ページが読み込まれたらloadFlowsを実行する
-//これをしたらindex.htmlを開いただけで自動的にfetchが走る
+// ページ読み込み時
 window.addEventListener("DOMContentLoaded", () => {
+    // 保存された単位を復元
+    currentUnit = localStorage.getItem("displayUnit") || "mb";
+    
+    // 初期タイトル更新
+    updateFlowsChartTitles();
+    
     loadFlows();
     checkCaptureStatus();
-
-    //予約関数setInterval...「○ミリ秒ごとに、この関数を呼び続けて」ってお願いする
-    //setInterval() を呼ぶと、ブラウザ側が「このタイマーはID=1ね」みたいに番号をくれて、その番号が timerId に入る。
-    timerId = setInterval(loadFlows, 5000); //ms単位（5秒ごとに更新）
-    statusTimerId = setInterval(checkCaptureStatus, 5000); // 5秒ごとに監視状態をチェック
+    timerId = setInterval(loadFlows, 5000);
+    statusTimerId = setInterval(checkCaptureStatus, 5000);
 });

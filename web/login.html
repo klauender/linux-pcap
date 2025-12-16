@@ -13,14 +13,14 @@
         <div class="login-card">
             <div class="login-header">
                 <h1 class="login-title">LinaP</h1>
-                <p class="login-subtitle">ログイン</p>
+                <p class="login-subtitle" data-i18n="login">ログイン</p>
             </div>
 
             <form action="/login" method="post" class="login-form">
                 <div class="form-group">
                     <label for="role">
                         <span class="material-symbols-rounded form-icon">person</span>
-                        権限
+                        <span data-i18n="role">権限</span>
                     </label>
                     <select id="role" name="role" class="form-input">
                         <option value="admin">admin</option>
@@ -30,7 +30,7 @@
                 <div class="form-group">
                     <label for="password">
                         <span class="material-symbols-rounded form-icon">lock</span>
-                        パスワード
+                        <span data-i18n="password">パスワード</span>
                     </label>
                     <input
                         type="password"
@@ -38,16 +38,18 @@
                         name="password"
                         class="form-input"
                         placeholder="パスワードを入力"
+                        data-i18n-placeholder="passwordPlaceholder"
                     />
                 </div>
                 <div id="error-message" class="error-message"></div>
                 <button type="submit" class="login-button">
                     <span class="material-symbols-rounded">login</span>
-                    <span>ログイン</span>
+                    <span data-i18n="login">ログイン</span>
                 </button>
             </form>
         </div>
     </div>
     <script src="js/login.js"></script>
+    <script src="js/i18n.js"></script>
 </body>
 </html>

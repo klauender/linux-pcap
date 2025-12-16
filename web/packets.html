@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイム - LinaP</title>
+    <title>パケット - LinaP</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/chart.css">
 </head>
-<body class="no-scroll">
+<body>
     <aside class="sidebar">
         <header class="sidebar-header">
             <a href="/index" class="header-title">Lina<span class="status-letter">P</span></a>
@@ -22,33 +21,33 @@
             <!-- menu list -->
             <ul class="menu-list">
                 <li class="menu-item">
-                    <a href="/packet" class="menu-link">
-                        <span class="material-symbols-rounded">inventory_2</span>
-                        <span class="menu-label">パケット</span>
-                    </a>
-                </li>
-                <li class="menu-item">
                     <a href="/index" class="menu-link">
-                        <span class="material-symbols-rounded">swap_horiz</span>
-                        <span class="menu-label">フロー</span>
+                        <span class="material-symbols-rounded">dashboard</span>
+                        <span class="menu-label" data-i18n="dashboard">ダッシュボード</span>
                     </a>
                 </li>
                 <li class="menu-item">
-                    <a href="/realtime" class="menu-link active">
-                        <span class="material-symbols-rounded">monitoring</span>
-                        <span class="menu-label">リアルタイム</span>
+                    <a href="/packets" class="menu-link active">
+                        <span class="material-symbols-rounded">inventory_2</span>
+                        <span class="menu-label" data-i18n="packets">パケット</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="/flows" class="menu-link">
+                        <span class="material-symbols-rounded">swap_horiz</span>
+                        <span class="menu-label" data-i18n="flows">フロー</span>
                     </a>
                 </li>
                 <li class="menu-item">
                     <a href="/security" class="menu-link">
                         <span class="material-symbols-rounded">security</span>
-                        <span class="menu-label">セキュリティ</span>
+                        <span class="menu-label" data-i18n="security">セキュリティ</span>
                     </a>
                 </li>
                 <li class="menu-item">
                     <a href="/network" class="menu-link">
                         <span class="material-symbols-rounded">lan</span>
-                        <span class="menu-label">ネットワーク</span>
+                        <span class="menu-label" data-i18n="network">ネットワーク</span>
                     </a>
                 </li>
             </ul>
@@ -61,12 +60,17 @@
         <div class="sidebar-footer">
             <a href="/settings" class="menu-link">
                 <span class="material-symbols-rounded">settings</span>
-                <span class="menu-label">設定</span>
+                <span class="menu-label" data-i18n="settings">設定</span>
             </a>
-            <a href="/logout" class="menu-link menu-link-logout">
-                <span class="material-symbols-rounded">logout</span>
-                <span class="menu-label">ログアウト</span>
-            </a>
+            <button class="unit-toggle">
+                <div class="unit-label">
+                    <span class="unit-icon material-symbols-rounded">scale</span>
+                    <span class="unit-text">MB</span>
+                </div>
+                <div class="unit-toggle-track">
+                    <div class="unit-toggle-indicator"></div>
+                </div>
+            </button>
             <button class="theme-toggle">
                 <div class="theme-label">
                     <span class="theme-icon material-symbols-rounded">dark_mode</span>
@@ -76,12 +80,16 @@
                     <div class="theme-toggle-indicator"></div>
                 </div>
             </button>
+            <a href="/logout" class="menu-link menu-link-logout">
+                <span class="material-symbols-rounded">logout</span>
+                <span class="menu-label" data-i18n="logout">ログアウト</span>
+            </a>
         </div>
     </aside>
 
     <main>
-        <div class="realtime-controls">
-            <div class="radio-group">
+        <header class="main-header">
+            <div class="time-range-controls">
                 <label class="radio-item">
                     <input type="radio" name="time-range" value="10" checked>
                     <span class="radio-label">10min<span class="interval-badge">5sec</span></span>
@@ -107,22 +115,34 @@
                     <span class="radio-label">1year<span class="interval-badge">1day</span></span>
                 </label>
             </div>
-        </div>
+        </header>
 
+        <!-- リアルタイムグラフ -->
         <div class="display-flex realtime">
             <section class="chart-section-bar chart-section-full">
-                <h2 class="chart-title" id="bytes-chart-title">リアルタイム / データ量 (MB)</h2>
-                <div class="chart-wrapper-bar chart-wrapper-large">
-                    <canvas id="realtimeBytes"></canvas>
+                <div class="chart-header-with-stats">
+                    <h2 class="chart-title" id="realtime-chart-title" data-i18n="realtimeTraffic">リアルタイム</h2>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Peak IN</span>
+                            <span class="stat-value" id="stat-peak-in">0 MB</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Peak OUT</span>
+                            <span class="stat-value stat-out" id="stat-peak-out">0 MB</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg IN</span>
+                            <span class="stat-value" id="stat-avg-in">0 MB</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg OUT</span>
+                            <span class="stat-value stat-out" id="stat-avg-out">0 MB</span>
+                        </div>
+                    </div>
                 </div>
-            </section>
-        </div>
-
-        <div class="display-flex realtime">
-            <section class="chart-section-bar chart-section-full">
-                <h2 class="chart-title" id="packets-chart-title">リアルタイム / パケット数</h2>
                 <div class="chart-wrapper-bar chart-wrapper-large">
-                    <canvas id="realtimePackets"></canvas>
+                    <canvas id="realtimeChart"></canvas>
                 </div>
             </section>
         </div>
@@ -133,7 +153,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/sidebar.js"></script>
     <script src="js/realtime-chart.js"></script>
-    <script src="js/index.js"></script>
+    <script src="js/i18n.js"></script>
 </body>
 </html>
 

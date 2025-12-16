@@ -36,7 +36,8 @@ body.dark-theme main {
 
 .byBytes,
 .byPackets,
-.realtime {
+.realtime,
+.flows-top {
     margin-bottom: 24px;
     gap: 20px;
 }
@@ -79,7 +80,7 @@ body.dark-theme main {
 
 /* Stopped状態: 赤 */
 .chart-title.stopped::before {
-    background: linear-gradient(180deg, #ef4444, #dc2626);
+    background: linear-gradient(180deg, #ff006e, #cc0058);
 }
 
 body.dark-theme .chart-title {
@@ -105,7 +106,7 @@ body.dark-theme .chart-title.running::before {
 }
 
 body.dark-theme .chart-title.stopped::before {
-    background: linear-gradient(180deg, #ef4444, #dc2626);
+    background: linear-gradient(180deg, #ff006e, #cc0058);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
@@ -175,6 +176,28 @@ body.dark-theme .chart-section-line {
 
 .chart-wrapper-large {
     height: 280px;
+}
+
+/* パケットページ用リアルタイムセクション */
+.chart-section-realtime {
+    flex: 2;
+    min-width: 0;
+}
+
+.chart-wrapper-realtime {
+    height: 280px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.byData {
+    gap: 20px;
+}
+
+/* 円グラフ行（中央寄せ） */
+.pie-row {
+    justify-content: center;
+    margin-bottom: 24px;
 }
 
 

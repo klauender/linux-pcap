@@ -43,34 +43,70 @@ def signal_handler(signum, frame):
 flows = {}
 
 #各務原wifi
-lan_net = ipaddress.ip_network("192.168.10.0/24")
+#lan_net = ipaddress.ip_network("192.168.10.0/24")
 
 #153教室lan
 #lan_net = ipaddress.ip_network("10.128.56.0/22")
 
+#171教室lan
+#lan_net = ipaddress.ip_network("10.128.64.0/22")
 
-idle_timeout = 3
+#15A教室wifi
+lan_net = ipaddress.ip_network("127.0.0.0/8")
+
+
+idle_timeout = 180
 
 #DB接続
-conn = sqlite3.connect("flow.db")
+conn = sqlite3.connect("flow.db", timeout=30)  # 30秒のタイムアウト
 cur = conn.cursor()
+cur.execute("PRAGMA journal_mode=WAL")  # WALモードで同時アクセス改善
 
-# 5秒ごとのパケット集計用のテーブルを作成
+# 5秒ごとのパケット集計用のテーブルを作成（送信/受信を分けて保存）
 cur.execute("""
     CREATE TABLE IF NOT EXISTS realtime_packets (
         timestamp INTEGER PRIMARY KEY,
         total_bytes INTEGER NOT NULL,
-        total_packets INTEGER NOT NULL
+        total_packets INTEGER NOT NULL,
+        in_bytes INTEGER DEFAULT 0,
+        out_bytes INTEGER DEFAULT 0,
+        internal_bytes INTEGER DEFAULT 0,
+        external_bytes INTEGER DEFAULT 0,
+        in_packets INTEGER DEFAULT 0,
+        out_packets INTEGER DEFAULT 0,
+        internal_packets INTEGER DEFAULT 0,
+        external_packets INTEGER DEFAULT 0,
+        tcp_bytes INTEGER DEFAULT 0,
+        udp_bytes INTEGER DEFAULT 0,
+        tcp_packets INTEGER DEFAULT 0,
+        udp_packets INTEGER DEFAULT 0
     )
 """)
 conn.commit()
+
+# 既存テーブルに新カラムがない場合は追加
+try:
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN internal_bytes INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN external_bytes INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN internal_packets INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN external_packets INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN tcp_bytes INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN udp_bytes INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN tcp_packets INTEGER DEFAULT 0")
+    cur.execute("ALTER TABLE realtime_packets ADD COLUMN udp_packets INTEGER DEFAULT 0")
+    conn.commit()
+except:
+    pass  # カラムが既に存在する場合は無視
 
 # 5秒ごとのパケット集計用の辞書
 realtime_aggregates = {}
 # {
 #   timestamp_5sec: {
 #       "total_bytes": 0,
-#       "total_packets": 0
+#       "total_packets": 0,
+#       "in_bytes": 0, "out_bytes": 0, "internal_bytes": 0, "external_bytes": 0,
+#       "in_packets": 0, "out_packets": 0, "internal_packets": 0, "external_packets": 0,
+#       "tcp_bytes": 0, "udp_bytes": 0, "tcp_packets": 0, "udp_packets": 0
 #   }
 # }
 
@@ -136,9 +172,10 @@ def main():
             )
 
             key = (src_ip, dst_ip, src_port, dst_port, protocol)
+            direction = get_direction(src_ip, dst_ip)
             update_flow(key, timestamp, length, flags)
             # リアルタイム集計は現在時刻を使用（パケットのタイムスタンプではなく）
-            update_realtime_aggregate(time.time(), length)
+            update_realtime_aggregate(time.time(), length, direction, protocol)
 
             now = time.time()
             cleanup(now)
@@ -282,25 +319,60 @@ def cleanup(now):
         del flows[key]
 
 
-def update_realtime_aggregate(timestamp, length):
-    """5秒ごとのパケット集計を更新"""
+def update_realtime_aggregate(timestamp, length, direction, protocol):
+    """5秒ごとのパケット集計を更新（送信/受信別・プロトコル別）"""
     # 5秒間隔のタイムスタンプを計算（5秒単位に切り捨て）
     timestamp_5sec = int(timestamp // 5) * 5
     
     if timestamp_5sec not in realtime_aggregates:
         realtime_aggregates[timestamp_5sec] = {
             "total_bytes": 0,
-            "total_packets": 0
+            "total_packets": 0,
+            "in_bytes": 0,
+            "out_bytes": 0,
+            "internal_bytes": 0,
+            "external_bytes": 0,
+            "in_packets": 0,
+            "out_packets": 0,
+            "internal_packets": 0,
+            "external_packets": 0,
+            "tcp_bytes": 0,
+            "udp_bytes": 0,
+            "tcp_packets": 0,
+            "udp_packets": 0
         }
     
-    realtime_aggregates[timestamp_5sec]["total_bytes"] += length
-    realtime_aggregates[timestamp_5sec]["total_packets"] += 1
+    agg = realtime_aggregates[timestamp_5sec]
+    agg["total_bytes"] += length
+    agg["total_packets"] += 1
+    
+    # 方向別に集計
+    if direction == "in":
+        agg["in_bytes"] += length
+        agg["in_packets"] += 1
+    elif direction == "out":
+        agg["out_bytes"] += length
+        agg["out_packets"] += 1
+    elif direction == "internal":
+        agg["internal_bytes"] += length
+        agg["internal_packets"] += 1
+    elif direction == "external":
+        agg["external_bytes"] += length
+        agg["external_packets"] += 1
+    
+    # プロトコル別に集計
+    if protocol == "TCP":
+        agg["tcp_bytes"] += length
+        agg["tcp_packets"] += 1
+    elif protocol == "UDP":
+        agg["udp_bytes"] += length
+        agg["udp_packets"] += 1
 
 
 def save_realtime_aggregates():
     """5秒ごとの集計データをDBに保存（別スレッド用に専用DB接続を使用）"""
     # スレッドセーフにするため、この関数内で専用のDB接続を作成
-    thread_conn = sqlite3.connect("flow.db")
+    thread_conn = sqlite3.connect("flow.db", timeout=30)  # 30秒のタイムアウト
     thread_cur = thread_conn.cursor()
     
     current_time = time.time()
@@ -325,15 +397,30 @@ def save_realtime_aggregates():
             try:
                 thread_cur.execute("""
                     INSERT OR REPLACE INTO realtime_packets
-                    (timestamp, total_bytes, total_packets)
-                    VALUES(?, ?, ?)
+                    (timestamp, total_bytes, total_packets, 
+                     in_bytes, out_bytes, internal_bytes, external_bytes,
+                     in_packets, out_packets, internal_packets, external_packets,
+                     tcp_bytes, udp_bytes, tcp_packets, udp_packets)
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     timestamp_5sec,
                     data["total_bytes"],
-                    data["total_packets"]
+                    data["total_packets"],
+                    data.get("in_bytes", 0),
+                    data.get("out_bytes", 0),
+                    data.get("internal_bytes", 0),
+                    data.get("external_bytes", 0),
+                    data.get("in_packets", 0),
+                    data.get("out_packets", 0),
+                    data.get("internal_packets", 0),
+                    data.get("external_packets", 0),
+                    data.get("tcp_bytes", 0),
+                    data.get("udp_bytes", 0),
+                    data.get("tcp_packets", 0),
+                    data.get("udp_packets", 0)
                 ))
                 saved_count += 1
-                print(f"データを保存: timestamp={timestamp_5sec}, bytes={data['total_bytes']}, packets={data['total_packets']}")
+                print(f"データを保存: timestamp={timestamp_5sec}, total={data['total_bytes']}B, TCP={data.get('tcp_bytes', 0)}B, UDP={data.get('udp_bytes', 0)}B")
             except Exception as e:
                 print(f"データ保存エラー (timestamp={timestamp_5sec}): {e}")
                 import traceback
