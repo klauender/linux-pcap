@@ -584,8 +584,12 @@ app.get("/api/realtimePackets", (req, res) => {
             total_packets,
             COALESCE(in_bytes, 0) as in_bytes,
             COALESCE(out_bytes, 0) as out_bytes,
+            COALESCE(internal_bytes, 0) as internal_bytes,
+            COALESCE(external_bytes, 0) as external_bytes,
             COALESCE(in_packets, 0) as in_packets,
-            COALESCE(out_packets, 0) as out_packets
+            COALESCE(out_packets, 0) as out_packets,
+            COALESCE(internal_packets, 0) as internal_packets,
+            COALESCE(external_packets, 0) as external_packets
         FROM realtime_packets
         ORDER BY timestamp DESC
         LIMIT ?

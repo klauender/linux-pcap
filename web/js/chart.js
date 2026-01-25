@@ -2,13 +2,13 @@ console.log("chart.js loaded");
 
 // サイバーテーマのカラーパレット
 const chartColors = {
-    primary: "#00ff9f",
+    primary: "#00ff9f",       // IN
     primaryLight: "#00ffcc",
-    secondary: "#ff006e",
+    secondary: "#ff006e",     // OUT
     secondaryLight: "#ff4d94",
-    accent: "#ffbe0b",
+    accent: "#ffbe0b",        // Internal
     accentLight: "#ffd60a",
-    info: "#00d4ff",
+    info: "#00d4ff",          // External
     infoLight: "#00e5ff",
     danger: "#ff006e",
     dangerLight: "#ff4d94",
@@ -156,6 +156,8 @@ function updateFlowsChart() {
     const labels = data.map(row => {
         if (row.direction === 'in') return row.src_ip;
         if (row.direction === 'out') return row.dst_ip;
+        if (row.direction === 'internal') return `${row.src_ip} ⇄ ${row.dst_ip}`;
+        if (row.direction === 'external') return `${row.src_ip} ⇄ ${row.dst_ip}`;
         return `${row.src_ip} → ${row.dst_ip}`;
     });
     
@@ -166,11 +168,15 @@ function updateFlowsChart() {
     const barColors = data.map(row => {
         if (row.direction === 'in') return chartColors.primary;
         if (row.direction === 'out') return chartColors.secondary;
+        if (row.direction === 'internal') return chartColors.accent;
+        if (row.direction === 'external') return chartColors.info;
         return chartColors.info;
     });
     const borderColors = data.map(row => {
         if (row.direction === 'in') return chartColors.primaryLight;
         if (row.direction === 'out') return chartColors.secondaryLight;
+        if (row.direction === 'internal') return chartColors.accentLight;
+        if (row.direction === 'external') return chartColors.infoLight;
         return chartColors.infoLight;
     });
 
@@ -211,7 +217,9 @@ function updateFlowsChart() {
                                 const textColor = isDarkTheme() ? "#F1F5F9" : "#374151";
                                 return [
                                     { text: "IN", fillStyle: chartColors.primary, strokeStyle: chartColors.primaryLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor },
-                                    { text: "OUT", fillStyle: chartColors.secondary, strokeStyle: chartColors.secondaryLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor }
+                                    { text: "OUT", fillStyle: chartColors.secondary, strokeStyle: chartColors.secondaryLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor },
+                                    { text: "Internal", fillStyle: chartColors.accent, strokeStyle: chartColors.accentLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor },
+                                    { text: "External", fillStyle: chartColors.info, strokeStyle: chartColors.infoLight, lineWidth: 2, pointStyle: "circle", fontColor: textColor }
                                 ];
                             }
                         }

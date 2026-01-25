@@ -180,8 +180,12 @@ function mapDataToLabels(data, minutes) {
     const result = {
         inBytes: new Array(dataPoints).fill(0),
         outBytes: new Array(dataPoints).fill(0),
+        internalBytes: new Array(dataPoints).fill(0),
+        externalBytes: new Array(dataPoints).fill(0),
         inPackets: new Array(dataPoints).fill(0),
-        outPackets: new Array(dataPoints).fill(0)
+        outPackets: new Array(dataPoints).fill(0),
+        internalPackets: new Array(dataPoints).fill(0),
+        externalPackets: new Array(dataPoints).fill(0)
     };
     
     data.forEach(row => {
@@ -190,13 +194,19 @@ function mapDataToLabels(data, minutes) {
         if (index >= 0 && index < dataPoints) {
             result.inBytes[index] += parseFloat(((row.in_bytes || 0) / (1024 * 1024)).toFixed(4));
             result.outBytes[index] += parseFloat(((row.out_bytes || 0) / (1024 * 1024)).toFixed(4));
+            result.internalBytes[index] += parseFloat(((row.internal_bytes || 0) / (1024 * 1024)).toFixed(4));
+            result.externalBytes[index] += parseFloat(((row.external_bytes || 0) / (1024 * 1024)).toFixed(4));
             result.inPackets[index] += row.in_packets || 0;
             result.outPackets[index] += row.out_packets || 0;
+            result.internalPackets[index] += row.internal_packets || 0;
+            result.externalPackets[index] += row.external_packets || 0;
         }
     });
     
     result.inBytes = result.inBytes.map(v => parseFloat(v.toFixed(2)));
     result.outBytes = result.outBytes.map(v => parseFloat(v.toFixed(2)));
+    result.internalBytes = result.internalBytes.map(v => parseFloat(v.toFixed(2)));
+    result.externalBytes = result.externalBytes.map(v => parseFloat(v.toFixed(2)));
     
     return result;
 }
@@ -278,23 +288,27 @@ function updateRealtimeChart() {
     const canvas = document.getElementById("realtimeChart");
     if (!canvas) return;
 
-    let inData, outData, yAxisLabel, tooltipSuffix, minMax;
+    let inData, outData, internalData, externalData, yAxisLabel, tooltipSuffix, minMax;
     
     if (currentUnit === "mb") {
         inData = cachedData.inBytes;
         outData = cachedData.outBytes;
+        internalData = cachedData.internalBytes;
+        externalData = cachedData.externalBytes;
         yAxisLabel = "データ量 (MB)";
         tooltipSuffix = " MB";
         minMax = 1;
     } else {
         inData = cachedData.inPackets;
         outData = cachedData.outPackets;
+        internalData = cachedData.internalPackets;
+        externalData = cachedData.externalPackets;
         yAxisLabel = "パケット数";
         tooltipSuffix = " pkt";
         minMax = 1000;
     }
     
-    const maxDataValue = Math.max(...inData, ...outData);
+    const maxDataValue = Math.max(...inData, ...outData, ...internalData, ...externalData);
     const yAxisMax = Math.max(maxDataValue * (4/3), minMax);
 
     if (!realtimeChartData) {
@@ -326,6 +340,30 @@ function updateRealtimeChart() {
                         pointRadius: 0,
                         pointHoverRadius: 4,
                         pointBackgroundColor: chartColors.secondary,
+                    },
+                    {
+                        label: "Internal",
+                        data: internalData,
+                        borderColor: chartColors.accent,
+                        backgroundColor: "rgba(255, 190, 11, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.accent,
+                    },
+                    {
+                        label: "External",
+                        data: externalData,
+                        borderColor: chartColors.info,
+                        backgroundColor: "rgba(0, 212, 255, 0.1)",
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: chartColors.info,
                     }
                 ]
             },
@@ -382,6 +420,8 @@ function updateRealtimeChart() {
         realtimeChartData.data.labels = cachedLabels;
         realtimeChartData.data.datasets[0].data = inData;
         realtimeChartData.data.datasets[1].data = outData;
+        realtimeChartData.data.datasets[2].data = internalData;
+        realtimeChartData.data.datasets[3].data = externalData;
         realtimeChartData.options.scales.y.max = yAxisMax;
         realtimeChartData.options.scales.y.title.text = yAxisLabel;
         realtimeChartData.update('none');

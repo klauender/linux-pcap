@@ -52,8 +52,10 @@ flows = {}
 #lan_net = ipaddress.ip_network("10.128.64.0/22")
 
 #15A教室wifi
-lan_net = ipaddress.ip_network("127.0.0.0/8")
+#lan_net = ipaddress.ip_network("127.0.0.0/8")
 
+#水曜java
+lan_net = ipaddress.ip_network("10.128.64.0/22")
 
 idle_timeout = 180
 
